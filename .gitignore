@@ -1,0 +1,13 @@
+# Node
+node_modules/
+
+# Vite build
+dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
