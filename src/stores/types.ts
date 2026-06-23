@@ -81,3 +81,25 @@ export interface PublicationPageResponse {
     size: number
   }
 }
+
+export interface JournalApcItem {
+  journalName: string
+  journalIssn: string
+  publicationCount: number
+  totalApcCost: number
+}
+
+export interface JournalCountItem {
+  journalName: string
+  journalIssn: string
+  publicationCount: number
+}
+
+export interface InstitutionScatterItem {
+  institutionId: string
+  institutionName: string
+  totalPublications: number
+  oaPercentage: number
+  totalApcCost: number
+  hasApcData: boolean
+}

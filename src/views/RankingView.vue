@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import RankingScatterChart from '@/components/charts/RankingScatterChart.vue'
+import type { InstitutionScatterItem } from '@/stores/types'
 
 interface RankingItem {
   institutionId: string
@@ -17,6 +19,8 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const availableYears = ref<number[]>([])
 const selectedYear = ref<number | null>(null)
+const scatterData = ref<InstitutionScatterItem[]>([])
+const scatterLoading = ref(false)
 
 async function fetchRanking() {
   if (!selectedYear.value) {
@@ -51,8 +55,23 @@ async function fetchYears() {
   }
 }
 
+async function fetchScatter() {
+  if (!selectedYear.value) return
+  scatterLoading.value = true
+  try {
+    const res = await fetch(`/api/institutions/stats/scatter?year=${selectedYear.value}`)
+    if (!res.ok) throw new Error('Error al cargar scatter')
+    scatterData.value = await res.json()
+  } catch {
+    scatterData.value = []
+  } finally {
+    scatterLoading.value = false
+  }
+}
+
 watch(selectedYear, () => {
   fetchRanking()
+  fetchScatter()
 })
 
 onMounted(async () => {
@@ -155,6 +174,19 @@ function formatNum(n: number) {
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <div v-if="selectedYear" class="card shadow-sm mt-4">
+      <div class="card-body">
+        <h5 class="card-title fs-6 fw-semibold mb-0">Coste APC vs % Acceso Abierto</h5>
+        <p class="text-muted small mb-3">Cada burbuja representa una universidad. Tamaño = volumen de publicaciones. Haz clic para ir a su ficha.</p>
+        <div v-if="scatterLoading" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+        </div>
+        <RankingScatterChart v-else :data="scatterData" />
       </div>
     </div>
   </div>
