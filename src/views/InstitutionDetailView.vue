@@ -197,24 +197,24 @@ function formatNum(n: number) {
 </script>
 
 <template>
-  <div v-if="store.institution">
+  <div v-if="store.institution" class="fade-in-up">
 
-    <button @click="router.push('/')"
-      class="btn btn-link text-decoration-none p-0 mb-3 d-inline-flex align-items-center gap-1">
+    <button @click="router.push('/institutions')"
+      class="btn btn-link text-decoration-none p-0 mb-3 d-inline-flex align-items-center gap-1 back-link">
       <i class="bi bi-arrow-left"></i>
       Volver a universidades
     </button>
 
-    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-4">
+    <div class="detail-header">
       <div>
-        <h1 class="h2 fw-bold text-break">{{ store.institution.name }}</h1>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <a :href="store.institution.rorId" target="_blank"
-            class="text-decoration-none small font-monospace text-primary-emphasis">
+        <h1 class="detail-title">{{ store.institution.name }}</h1>
+        <div class="detail-meta">
+          <a :href="store.institution.rorId" target="_blank" class="text-mono small text-primary text-decoration-none">
             {{ store.institution.rorId }}
           </a>
-          <span v-if="store.institution.rebiunCode" class="small text-muted">· {{ store.institution.rebiunCode }}</span>
-          <span class="small">·</span>
+          <span v-if="store.institution.rebiunCode" class="detail-sep">·</span>
+          <span v-if="store.institution.rebiunCode" class="small text-muted fw-medium">{{ store.institution.rebiunCode }}</span>
+          <span class="detail-sep">·</span>
           <span class="badge" :class="store.institution.oaiStatus === 'ACTIVE' ? 'text-bg-success' :
             store.institution.oaiStatus === 'DEGRADED' ? 'text-bg-warning' : 'text-bg-danger'">
             {{ store.institution.oaiStatus }}
@@ -615,6 +615,55 @@ function formatNum(n: number) {
 </template>
 
 <style scoped>
+.detail-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+@media (min-width: 576px) {
+  .detail-header {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.detail-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: var(--color-text-primary);
+  word-break: break-word;
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-top: var(--space-xs);
+}
+
+.detail-sep {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.back-link {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.back-link:hover {
+  color: var(--color-primary);
+}
+
 .badge-diamond {
   background-color: #a855f7 !important;
   color: #fff !important;

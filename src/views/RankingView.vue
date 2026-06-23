@@ -84,20 +84,20 @@ function formatNum(n: number) {
 </script>
 
 <template>
-  <div>
-    <div class="mb-4">
-      <h1 class="h3 fw-bold">Ranking nacional</h1>
-      <p class="text-muted">Universidades ordenadas por porcentaje de Acceso Abierto</p>
+  <div class="ranking-view fade-in-up">
+    <div class="view-header">
+      <h1 class="view-title">Ranking nacional</h1>
+      <p class="view-subtitle">Universidades ordenadas por porcentaje de Acceso Abierto</p>
     </div>
 
     <div class="card shadow-sm mb-4">
-      <div class="card-body d-flex flex-column flex-sm-row align-items-center gap-3">
-        <label class="fw-semibold text-muted">Año:</label>
+      <div class="card-body py-3 d-flex flex-column flex-sm-row align-items-center gap-3">
+        <label class="fw-semibold text-muted small text-uppercase" style="letter-spacing:0.04em">Año:</label>
         <select v-model="selectedYear" class="form-select form-select-sm" style="width:auto;max-width:200px">
           <option :value="null" disabled>Selecciona un año</option>
           <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
         </select>
-        <small v-if="availableYears.length > 0" class="text-muted">
+        <small v-if="availableYears.length > 0 && ranking.length > 0" class="text-muted fw-medium">
           {{ ranking.length }} universidades con datos en {{ selectedYear }}
         </small>
       </div>
@@ -179,8 +179,8 @@ function formatNum(n: number) {
 
     <div v-if="selectedYear" class="card shadow-sm mt-4">
       <div class="card-body">
-        <h5 class="card-title fs-6 fw-semibold mb-0">Coste APC vs % Acceso Abierto</h5>
-        <p class="text-muted small mb-3">Cada burbuja representa una universidad. Tamaño = volumen de publicaciones. Haz clic para ir a su ficha.</p>
+        <h5 class="chart-section-title">Coste APC vs % Acceso Abierto — {{ selectedYear }}</h5>
+        <p class="chart-section-sub">Cada burbuja representa una universidad. Tamaño = volumen de publicaciones.</p>
         <div v-if="scatterLoading" class="text-center py-4">
           <div class="spinner-border spinner-border-sm text-primary" role="status">
             <span class="visually-hidden">Cargando...</span>
@@ -191,3 +191,39 @@ function formatNum(n: number) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.ranking-view {
+  max-width: 100%;
+}
+
+.view-header {
+  margin-bottom: var(--space-lg);
+}
+
+.view-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0;
+}
+
+.view-subtitle {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
+}
+
+.chart-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+
+.chart-section-sub {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+</style>
