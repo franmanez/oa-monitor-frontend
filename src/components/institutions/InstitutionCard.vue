@@ -18,6 +18,7 @@ const rorShort = computed(() => {
 function statusColor(status: string) {
   switch (status) {
     case 'ACTIVE': return 'var(--color-success)'
+    case 'INACTIVE': return 'var(--color-muted, #6b7280)'
     case 'DEGRADED': return 'var(--color-warning)'
     case 'UNREACHABLE': return 'var(--color-danger)'
     default: return 'var(--color-text-muted)'
@@ -27,6 +28,7 @@ function statusColor(status: string) {
 function statusLabel(status: string) {
   switch (status) {
     case 'ACTIVE': return 'Activo'
+    case 'INACTIVE': return 'Inactivo'
     case 'DEGRADED': return 'Degradado'
     case 'UNREACHABLE': return 'Inaccesible'
     default: return status
@@ -77,17 +79,15 @@ const harvestStatus = computed(() => {
     <div class="card-ids">
       <span class="card-ror font-mono">{{ rorShort }}</span>
       <span v-if="institution.rebiunCode" class="card-rebiun">{{ institution.rebiunCode }}</span>
+      <span v-if="institution.oaiEndpoint" class="card-repo" title="Repositorio institucional configurado">
+        <i class="bi bi-archive-fill"></i>
+      </span>
     </div>
 
     <div class="card-metrics">
       <div class="metric">
         <span class="metric-value">{{ formatNum(institution.totalPublications) }}</span>
         <span class="metric-label">Artículos</span>
-      </div>
-      <div class="metric-divider"></div>
-      <div class="metric">
-        <span class="metric-value" :style="{ color: statusColor(institution.oaiStatus) }">{{ statusLabel(institution.oaiStatus) }}</span>
-        <span class="metric-label">Estado</span>
       </div>
     </div>
 
@@ -175,6 +175,20 @@ const harvestStatus = computed(() => {
   font-size: 0.68rem;
   font-weight: 600;
   color: var(--color-text-secondary);
+}
+
+.card-repo {
+  font-size: 0.68rem;
+  color: #0dcaf0;
+  background: rgba(13, 202, 240, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+}
+
+.card-repo i {
+  font-size: 0.6rem;
 }
 
 .card-metrics {

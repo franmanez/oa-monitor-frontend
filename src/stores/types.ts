@@ -6,7 +6,7 @@ export interface Institution {
   oaiMetadataPrefix: string | null
   rebiunCode: string | null
   lastHarvestAt: string | null
-  oaiStatus: 'ACTIVE' | 'UNREACHABLE' | 'DEGRADED'
+  oaiStatus: 'ACTIVE' | 'INACTIVE' | 'UNREACHABLE' | 'DEGRADED'
   totalPublications: number
 }
 
@@ -66,8 +66,8 @@ export interface PublicationItem {
   journalName: string | null
   oaStatusOpenalex: string | null
   oaStatusResolved: string | null
-  foundInRepository: boolean | null
   repositoryUrl: string | null
+  source: string | null
   apcEstimatedEur: number | null
   apcCoveredByAgreement: boolean | null
 }

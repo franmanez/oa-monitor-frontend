@@ -67,7 +67,7 @@ const chartOptions = computed(() => ({
   <div class="position-relative" :style="{ height: Math.max(300, topJournals.length * 24 + 80) + 'px' }">
     <Bar v-if="topJournals.length > 0" :data="chartData" :options="chartOptions" />
     <div v-else class="d-flex align-items-center justify-content-center h-100 text-muted">
-      <small>Sin datos APC para este período. Ejecuta "Calcular APC" primero.</small>
+      <small>Sin datos APC para este período. Ejecuta "Calcular APC por artículo" primero.</small>
     </div>
   </div>
 </template>
