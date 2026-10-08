@@ -30,7 +30,7 @@ const emit = defineEmits<{
 .card-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-md);
+  gap: var(--space-lg);
 }
 
 @media (max-width: 992px) {

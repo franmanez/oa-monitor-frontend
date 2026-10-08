@@ -13,11 +13,13 @@ html {
 
 body {
   font-family: var(--font-body);
+  font-size: 17px;
   background-color: var(--color-bg);
   color: var(--color-text-primary);
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
   padding: 0;
+  transition: background-color var(--transition-base), color var(--transition-base);
 }
 
 a {
@@ -38,12 +40,12 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-mono);
 }
 
-/* Card overrides */
+/* Card overrides — TailAdmin style: rounded-2xl, subtle border */
 .card {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
+  transition: box-shadow var(--transition-base), background-color var(--transition-base);
   background: var(--color-surface);
 }
 
@@ -52,22 +54,43 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .card-header {
-  background: var(--color-surface-muted);
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+  padding: var(--space-lg) var(--space-lg) 0;
+}
+
+.dark .card-header {
+  background: var(--color-surface);
+}
+
+/* Table light background in dark mode */
+.dark .table-light {
+  background-color: var(--color-surface-muted) !important;
+  color: var(--color-text-primary);
+}
+
+.dark .table {
+  color: var(--color-text-primary);
+}
+
+.dark .table > :not(caption) > * > * {
+  border-color: var(--color-border);
 }
 
 /* Badge refinements */
 .badge {
   font-weight: 600;
   letter-spacing: 0.01em;
+  border-radius: var(--radius-full);
+  padding: 0.25em 0.75em;
 }
 
 /* Form controls */
 .form-select:focus,
 .form-control:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 4px rgba(70, 95, 255, 0.12);
 }
 
 /* Table refinements */
@@ -83,8 +106,19 @@ h1, h2, h3, h4, h5, h6 {
 .btn {
   font-weight: 600;
   letter-spacing: 0.01em;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  font-size: 0.875rem;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 .btn-outline-primary {
@@ -110,8 +144,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Smooth scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -144,33 +178,25 @@ h1, h2, h3, h4, h5, h6 {
   transition: all var(--transition-base);
 }
 
-/* Glass panel utility */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-}
-
-/* KPI stat card */
+/* KPI stat card — TailAdmin metric card style */
 .stat-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
 
 .stat-card:hover {
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
 }
 
 .stat-card-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,18 +205,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .stat-card-value {
   font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 800;
+  font-size: 1.875rem;
+  font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
+  color: var(--color-text-primary);
 }
 
 .stat-card-label {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--color-text-secondary);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: 400;
 }
 
 /* Health dot */
@@ -203,17 +228,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .health-dot-active {
   background-color: var(--color-success);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 3px rgba(18, 183, 106, 0.2);
 }
 
 .health-dot-warning {
   background-color: var(--color-warning);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 0 0 3px rgba(247, 144, 9, 0.2);
 }
 
 .health-dot-danger {
   background-color: var(--color-danger);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.2);
 }
 
 /* Section divider */

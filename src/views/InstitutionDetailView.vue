@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useInstitutionDetailStore } from '@/stores/institutionDetail'
 import type { PublicationItem, PublicationPageResponse, JournalApcItem, JournalCountItem } from '@/stores/types'
 import OaPieChart from '@/components/charts/OaPieChart.vue'
-import OaEvolutionChart from '@/components/charts/OaEvolutionChart.vue'
 import JournalApcBarChart from '@/components/charts/JournalApcBarChart.vue'
 import TopJournalsChart from '@/components/charts/TopJournalsChart.vue'
 
@@ -20,6 +19,13 @@ const pubsPage = ref(0)
 const pubsSize = ref(20)
 const filterStatus = ref('')
 const filterSearch = ref('')
+const apcSort = ref<'' | 'desc' | 'asc'>('')
+
+function toggleApcSort() {
+  apcSort.value = apcSort.value === '' ? 'desc' : apcSort.value === 'desc' ? 'asc' : ''
+  pubsPage.value = 0
+  fetchPublications()
+}
 const calculatingApc = ref(false)
 const showHarvestModal = ref(false)
 const showOaiHarvestModal = ref(false)
@@ -113,6 +119,7 @@ async function fetchPublications() {
     params.set('size', String(pubsSize.value))
     if (store.selectedYear && store.selectedYear !== 'all') params.set('year', store.selectedYear)
     if (filterStatus.value) params.set('status', filterStatus.value)
+    if (apcSort.value) params.set('sort', `apcEstimatedEur,${apcSort.value}`)
     if (filterSearch.value) params.set('search', filterSearch.value)
     const res = await fetch(`/api/institutions/${route.params.id}/publications?${params}`)
     if (res.ok) {
@@ -325,7 +332,7 @@ function formatNum(n: number) {
           <div class="card shadow-sm h-100">
             <div class="card-body d-flex flex-column">
               <div class="d-flex align-items-center gap-2 mb-2">
-                <span class="d-inline-flex align-items-center justify-content-center rounded bg-purple bg-opacity-10"
+                <span class="d-inline-flex align-items-center justify-content-center rounded"
                   style="width:32px;height:32px;background:rgba(168,85,247,0.1)">
                   <i class="bi bi-currency-euro" style="color:#a855f7"></i>
                 </span>
@@ -336,7 +343,7 @@ function formatNum(n: number) {
                   <p class="h3 fw-bold mb-0">{{ formatEur(store.filteredApc?.totalEstimatedCost ?? 0) }}</p>
                   <small class="text-muted">{{ formatNum(store.filteredApc?.publicationsWithPrice ?? 0) }} artículos con precio</small>
                 </div>
-                <div class="position-relative flex-shrink-0" style="width:80px;height:80px">
+                <div class="position-relative flex-shrink-0" style="width:72px;height:72px">
                   <svg class="w-100 h-100" style="transform:rotate(-90deg)" viewBox="0 0 36 36">
                     <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" stroke-width="3.5"/>
                     <circle v-if="pctWithPrice > 0" cx="18" cy="18" r="15.9" fill="none" stroke="#3b82f6" stroke-width="3.5"
@@ -345,32 +352,17 @@ function formatNum(n: number) {
                   </svg>
                   <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
                     <div class="text-center lh-1">
-                      <span class="fw-bold" style="font-size:1.1rem">{{ pctWithPrice }}%</span>
+                      <span class="fw-bold" style="font-size:1rem">{{ pctWithPrice }}%</span>
                       <br><small class="text-muted" style="font-size:0.6rem">con prec.</small>
                     </div>
                   </div>
                 </div>
               </div>
-              <table class="table table-sm table-borderless mb-0 mt-2">
-                <tbody>
-                  <tr>
-                    <td class="text-muted ps-0" style="font-size:0.8rem">Artículos con precio</td>
-                    <td class="fw-semibold text-end" style="font-size:0.8rem">{{ formatNum(store.filteredApc?.publicationsWithPrice ?? 0) }}</td>
-                  </tr>
-                  <tr>
-                    <td class="text-muted ps-0" style="font-size:0.8rem">Artículos sin precio</td>
-                    <td class="fw-semibold text-end" style="font-size:0.8rem">{{ formatNum(store.filteredApc?.publicationsWithoutPrice ?? 0) }}</td>
-                  </tr>
-                  <tr>
-                    <td class="text-muted ps-0 border-top" style="font-size:0.8rem">Coste directo estimado</td>
-                    <td class="fw-semibold text-end border-top" style="font-size:0.8rem">{{ formatEur(store.filteredApc?.directCost ?? 0) }}</td>
-                  </tr>
-                  <tr v-if="(store.filteredApc?.coveredByAgreements ?? 0) > 0">
-                    <td class="text-success ps-0" style="font-size:0.8rem">Cubierto por acuerdos</td>
-                    <td class="fw-semibold text-success text-end" style="font-size:0.8rem">{{ formatEur(store.filteredApc?.coveredByAgreements ?? 0) }}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div v-if="(store.filteredApc?.coveredByAgreements ?? 0) > 0"
+                class="d-flex align-items-center gap-1 mt-3 small text-success">
+                <i class="bi bi-shield-check"></i>
+                <span>Cubierto por acuerdos: {{ formatEur(store.filteredApc?.coveredByAgreements ?? 0) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -378,76 +370,27 @@ function formatNum(n: number) {
 
       <div class="card shadow-sm mb-4">
         <div class="card-body">
-          <h5 class="card-title fs-6 fw-semibold mb-3">Acceso Abierto</h5>
-          <div class="row g-3">
-            <div class="col-lg-6">
-              <div class="card h-100">
-                <h6 class="card-header fw-semibold py-2">Rutas de Acceso Abierto</h6>
-                <div class="card-body">
-                  <div v-if="statusEntries.length > 0">
-                    <div v-for="(item, idx) in statusEntries" :key="item.key"
-                      class="d-flex align-items-center gap-3 py-2"
-                      :class="{ 'border-bottom border-light-subtle': idx < statusEntries.length - 1 }">
-                      <span class="badge flex-shrink-0" :class="statusBadgeClass(item.key)"
-                        style="width:72px">
-                        {{ item.label }}
-                      </span>
-                      <small class="text-muted">{{ oaDescriptions[item.key] || '' }}</small>
-                    </div>
+          <h5 class="card-title fs-6 fw-semibold mb-3">Distribución por tipo: Rutas de Acceso Abierto</h5>
+          <div v-if="statusEntries.length > 0" class="oa-dist-grid">
+            <div class="oa-dist-legend">
+              <div v-for="item in statusEntries" :key="item.key" class="mb-3">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="rounded-circle flex-shrink-0" style="width:10px;height:10px" :style="{ backgroundColor: item.color }"></span>
+                  <small class="fw-medium">{{ item.label }}</small>
+                  <div class="progress flex-grow-1" style="height:10px">
+                    <div class="progress-bar" :style="{ width: item.pct + '%', backgroundColor: item.color }"></div>
                   </div>
+                  <span class="fw-semibold small" style="width:52px;text-align:right">{{ formatNum(item.count) }}</span>
+                  <small class="text-muted" style="width:40px;text-align:right">{{ item.pct.toFixed(1) }}%</small>
                 </div>
+                <p class="oa-legend-desc" :style="{ '--desc-color': item.color }">{{ oaDescriptions[item.key] || '' }}</p>
               </div>
             </div>
-
-            <div class="col-lg-6">
-              <div class="card border h-100">
-                <div class="card-body d-flex flex-column">
-                  <h6 class="fw-semibold mb-3">Distribución por tipo de OA</h6>
-                  <div v-if="statusEntries.length > 0">
-                    <div v-for="item in statusEntries" :key="item.key" class="d-flex align-items-center gap-2 mb-2">
-                      <span class="rounded-circle flex-shrink-0" style="width:10px;height:10px;background-color:item.color"></span>
-                      <small class="fw-medium" style="width:72px">{{ item.label }}</small>
-                      <div class="progress flex-grow-1" style="height:10px">
-                        <div class="progress-bar" :style="{ width: item.pct + '%', backgroundColor: item.color }"></div>
-                      </div>
-                      <span class="fw-semibold small" style="width:52px;text-align:right">{{ formatNum(item.count) }}</span>
-                      <small class="text-muted" style="width:40px;text-align:right">{{ item.pct.toFixed(1) }}%</small>
-                    </div>
-                    <div class="mt-3 flex-grow-1">
-                      <OaPieChart :oaStatusCounts="statusCounts" />
-                    </div>
-                  </div>
-                  <p v-else class="text-muted text-center small py-4">No hay datos de OA para este período</p>
-                </div>
-              </div>
+            <div class="oa-dist-chart">
+              <OaPieChart :oaStatusCounts="statusCounts" />
             </div>
           </div>
-
-          <div class="row g-3 mt-3">
-            <div class="col-12">
-              <div class="card border">
-                <div class="card-body d-flex flex-column">
-                  <h6 class="fw-semibold mb-3">Evolución del Acceso Abierto</h6>
-                  <div v-if="store.oaBreakdown && Object.keys(store.oaBreakdown.yearlyOaPercentage).length > 0">
-                    <div v-for="[year, pct] of Object.entries(store.oaBreakdown.yearlyOaPercentage).sort().reverse()" :key="year"
-                      class="d-flex align-items-center gap-2 mb-2">
-                      <small class="fw-medium text-muted" style="width:48px">{{ year }}</small>
-                      <div class="progress flex-grow-1" style="height:16px">
-                        <div class="progress-bar" :style="{ width: pct + '%' }"
-                          :class="pct >= 70 ? 'bg-success' : pct >= 50 ? 'bg-warning' : 'bg-danger'">
-                        </div>
-                      </div>
-                      <small class="fw-semibold" style="width:56px;text-align:right">{{ pct.toFixed(1) }}%</small>
-                    </div>
-                    <div class="mt-4 flex-grow-1">
-                      <OaEvolutionChart :yearlyStatusCounts="store.oaBreakdown.yearlyStatusCounts" />
-                    </div>
-                  </div>
-                  <p v-else class="text-muted text-center small py-4">Sin datos históricos</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <p v-else class="text-muted text-center small py-4">No hay datos de OA para este período</p>
         </div>
       </div>
 
@@ -532,9 +475,15 @@ function formatNum(n: number) {
                   <th>Título</th>
                   <th class="d-none d-md-table-cell">Revista</th>
                   <th class="text-center" style="width:80px">Año</th>
-                  <th class="text-center" style="width:90px">Estado OA</th>
+                  <th class="text-center" style="width:100px">Ruta OA</th>
                   <th class="text-center d-none d-sm-table-cell" style="width:60px">Repo</th>
-                  <th class="text-end d-none d-lg-table-cell" style="width:110px">APC €</th>
+                  <th class="text-end d-none d-lg-table-cell sortable-th" style="width:110px" @click="toggleApcSort"
+                    title="Ordenar por coste APC">
+                    APC €
+                    <i class="bi ms-1"
+                      :class="apcSort === 'desc' ? 'bi-sort-down' : apcSort === 'asc' ? 'bi-sort-up' : 'bi-arrow-down-up'"
+                      :style="{ opacity: apcSort ? 1 : 0.4 }"></i>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -552,7 +501,7 @@ function formatNum(n: number) {
                   </td>
                   <td class="text-center small">{{ pub.publicationYear }}</td>
                   <td class="text-center">
-                    <span class="badge" :class="statusBadgeClass(pub.oaStatusResolved || pub.oaStatusOpenalex)">
+                    <span class="badge text-nowrap" :class="statusBadgeClass(pub.oaStatusResolved || pub.oaStatusOpenalex)">
                       {{ oaLabel(pub.oaStatusResolved || pub.oaStatusOpenalex) }}
                     </span>
                   </td>
@@ -670,10 +619,20 @@ function formatNum(n: number) {
   margin-bottom: var(--space-sm);
 }
 
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-th:hover {
+  color: var(--color-brand);
+}
+
 .detail-title {
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0;
   color: var(--color-text-primary);
   word-break: break-word;
@@ -693,8 +652,8 @@ function formatNum(n: number) {
 }
 
 .back-link {
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 500;
+  font-size: 0.875rem;
   color: var(--color-text-secondary);
   transition: color var(--transition-fast);
 }
@@ -704,7 +663,37 @@ function formatNum(n: number) {
 }
 
 .badge-diamond {
-  background-color: #a855f7 !important;
+  background-color: #7a5af8 !important;
   color: #fff !important;
+}
+
+.oa-legend-desc {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+  margin: 0;
+  padding-left: 18px;
+  border-left: 2px solid var(--desc-color, var(--color-border));
+  margin-left: 4px;
+}
+
+.oa-dist-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .oa-dist-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.oa-dist-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
 }
 </style>

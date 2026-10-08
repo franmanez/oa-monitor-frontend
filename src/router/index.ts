@@ -5,8 +5,8 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'dashboard',
-      component: () => import('@/views/DashboardView.vue')
+      name: 'landing',
+      component: () => import('@/views/LandingView.vue')
     },
     {
       path: '/institutions',

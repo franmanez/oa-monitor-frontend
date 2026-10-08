@@ -15,15 +15,14 @@ const rorShort = computed(() => {
   return props.institution.rorId?.replace('https://ror.org/', '') || ''
 })
 
-function statusColor(status: string) {
-  switch (status) {
-    case 'ACTIVE': return 'var(--color-success)'
-    case 'INACTIVE': return 'var(--color-muted, #6b7280)'
-    case 'DEGRADED': return 'var(--color-warning)'
-    case 'UNREACHABLE': return 'var(--color-danger)'
-    default: return 'var(--color-text-muted)'
+const repoUrl = computed(() => {
+  if (!props.institution.oaiEndpoint) return null
+  try {
+    return new URL(props.institution.oaiEndpoint).hostname
+  } catch {
+    return props.institution.oaiEndpoint
   }
-}
+})
 
 function statusLabel(status: string) {
   switch (status) {
@@ -50,8 +49,7 @@ const harvestDate = computed(() => formatDate(props.institution.lastHarvestAt))
 
 const harvestAge = computed(() => {
   if (!props.institution.lastHarvestAt) return null
-  const days = Math.floor((Date.now() - new Date(props.institution.lastHarvestAt).getTime()) / 86400000)
-  return days
+  return Math.floor((Date.now() - new Date(props.institution.lastHarvestAt).getTime()) / 86400000)
 })
 
 const harvestStatus = computed(() => {
@@ -63,203 +61,251 @@ const harvestStatus = computed(() => {
 </script>
 
 <template>
-  <div class="institution-card fade-in-up" @click="$emit('click', institution.id)">
-    <div class="card-top">
-      <div class="card-avatar" :style="{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }">
+  <div class="inst-card" @click="$emit('click', institution.id)">
+    <div class="card-body">
+      <div class="card-avatar">
         {{ initials }}
       </div>
 
-      <div class="card-status">
-        <span class="health-dot" :class="'health-dot-' + harvestStatus"></span>
+      <div class="card-content">
+        <div class="card-name-row">
+          <h3 class="card-name">{{ institution.name }}</h3>
+          <span
+            v-if="harvestStatus"
+            class="health-dot"
+            :class="'health-dot-' + harvestStatus"
+            :title="statusLabel(institution.oaiStatus)"
+          ></span>
+        </div>
+
+        <div class="card-meta">
+          <a
+            v-if="rorShort"
+            class="meta-ror"
+            :href="institution.rorId"
+            target="_blank"
+            rel="noopener"
+            title="Ficha ROR"
+            @click.stop
+          >{{ rorShort }}</a>
+          <a
+            v-if="repoUrl"
+            class="meta-repo"
+            :href="institution.oaiEndpoint || undefined"
+            target="_blank"
+            rel="noopener"
+            title="Repositorio institucional"
+            @click.stop
+          >
+            <i class="bi bi-archive"></i>
+            {{ repoUrl }}
+          </a>
+        </div>
       </div>
-    </div>
 
-    <h3 class="card-name">{{ institution.name }}</h3>
-
-    <div class="card-ids">
-      <span class="card-ror font-mono">{{ rorShort }}</span>
-      <span v-if="institution.rebiunCode" class="card-rebiun">{{ institution.rebiunCode }}</span>
-      <span v-if="institution.oaiEndpoint" class="card-repo" title="Repositorio institucional configurado">
-        <i class="bi bi-archive-fill"></i>
-      </span>
-    </div>
-
-    <div class="card-metrics">
-      <div class="metric">
-        <span class="metric-value">{{ formatNum(institution.totalPublications) }}</span>
-        <span class="metric-label">Artículos</span>
-      </div>
+      <i class="bi bi-chevron-right card-chevron"></i>
     </div>
 
     <div class="card-footer">
-      <div v-if="harvestDate" class="harvest-info">
-        <i class="bi bi-cloud-download"></i>
-        <span>{{ harvestDate }}</span>
+      <div class="footer-metric">
+        <span class="metric-value">{{ formatNum(institution.totalPublications) }}</span>
+        <span class="metric-label">Artículos</span>
       </div>
-      <div v-else class="harvest-info harvest-none">
-        <i class="bi bi-cloud-slash"></i>
-        <span>Sin cosechar</span>
+      <div class="footer-divider"></div>
+      <div class="footer-harvest">
+        <template v-if="harvestDate">
+          <i class="bi bi-cloud-download"></i>
+          <span>{{ harvestDate }}</span>
+        </template>
+        <template v-else>
+          <i class="bi bi-cloud-slash"></i>
+          <span class="harvest-none">Sin cosechar</span>
+        </template>
       </div>
-      <i class="bi bi-chevron-right card-chevron"></i>
     </div>
   </div>
 </template>
 
 <style scoped>
-.institution-card {
+.inst-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
   cursor: pointer;
-  transition: all var(--transition-base);
-  display: flex;
-  flex-direction: column;
-}
-
-.institution-card:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-  border-color: var(--color-primary);
-}
-
-.card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-md);
-}
-
-.card-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 0.85rem;
-  letter-spacing: -0.01em;
-}
-
-.card-name {
-  font-size: 0.9rem;
-  font-weight: 700;
-  line-height: 1.3;
-  margin: 0 0 var(--space-sm);
-  color: var(--color-text-primary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
   overflow: hidden;
 }
 
-.card-ids {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
+.inst-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--color-primary);
 }
 
-.card-ror {
-  font-size: 0.68rem;
-  color: var(--color-text-muted);
-  background: var(--color-surface-muted);
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
+.inst-card:hover .card-chevron {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--color-primary);
 }
 
-.card-rebiun {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.card-repo {
-  font-size: 0.68rem;
-  color: #0dcaf0;
-  background: rgba(13, 202, 240, 0.1);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  display: inline-flex;
-  align-items: center;
-}
-
-.card-repo i {
-  font-size: 0.6rem;
-}
-
-.card-metrics {
+.card-body {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  padding: var(--space-sm) 0;
-  border-top: 1px solid var(--color-border-light);
-  border-bottom: 1px solid var(--color-border-light);
-  margin-bottom: var(--space-sm);
+  padding: var(--space-lg);
 }
 
-.metric {
+.card-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: #fff;
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.metric-value {
-  font-size: 0.85rem;
+  justify-content: center;
   font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+}
+
+.card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.card-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.health-dot-active { background: var(--color-success); }
+.health-dot-warning { background: var(--color-warning); }
+.health-dot-danger { background: var(--color-danger); }
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.meta-ror {
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  text-decoration: none;
   font-family: var(--font-mono);
+  transition: opacity var(--transition-fast);
 }
 
-.metric-label {
+.meta-ror:hover {
+  opacity: 0.8;
+}
+
+.meta-repo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  transition: opacity var(--transition-fast);
+}
+
+.meta-repo:hover {
+  opacity: 0.8;
+}
+
+.meta-repo i {
   font-size: 0.7rem;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
-.metric-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--color-border-light);
+.card-chevron {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .card-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-surface-muted);
 }
 
-.harvest-info {
+.footer-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+}
+
+.metric-label {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.footer-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border-light);
+}
+
+.footer-harvest {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
+  margin-left: auto;
 }
 
-.harvest-info i {
-  font-size: 0.75rem;
+.footer-harvest i {
+  font-size: 0.8rem;
 }
 
 .harvest-none {
-  color: var(--color-text-muted);
   font-style: italic;
-}
-
-.card-chevron {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: all var(--transition-fast);
-}
-
-.institution-card:hover .card-chevron {
-  opacity: 1;
-  transform: translateX(0);
-  color: var(--color-primary);
 }
 </style>

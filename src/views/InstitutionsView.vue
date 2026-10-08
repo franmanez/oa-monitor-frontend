@@ -33,9 +33,11 @@ onMounted(() => {
 
 <template>
   <div class="institutions-view fade-in-up">
-    <div class="view-header">
-      <h1 class="h2 fw-bold">Universidades</h1>
-      <p class="text-muted">Monitor de cumplimiento de Acceso Abierto</p>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Universidades</h1>
+        <p class="page-subtitle">Acceso Abierto a revistas de universidades españolas</p>
+      </div>
     </div>
 
     <InstitutionsToolbar
@@ -83,19 +85,21 @@ onMounted(() => {
   max-width: 100%;
 }
 
-.view-header {
-  margin-bottom: var(--space-lg);
+.page-header {
+  margin-bottom: var(--space-xl);
 }
 
-.view-header h1 {
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  margin-bottom: 0;
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--color-text-primary);
 }
 
-.view-header p {
-  font-size: 0.9rem;
-  margin-top: var(--space-xs);
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.25rem;
 }
 </style>

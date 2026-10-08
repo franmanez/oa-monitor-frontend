@@ -11,7 +11,7 @@ const props = defineProps<{
 }>()
 
 const topJournals = computed(() => {
-  return props.journals.slice(0, 20).reverse()
+  return props.journals.slice(0, 20)
 })
 
 const chartData = computed(() => ({
@@ -35,8 +35,9 @@ const chartOptions = computed(() => ({
   indexAxis: 'y' as const,
   scales: {
     x: {
-      title: { display: true, text: 'Coste APC estimado (€)' },
+      title: { display: true, text: 'Coste APC estimado (€)', color: '#000' },
       ticks: {
+        color: '#000',
         callback: (v: any) => {
           if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M'
           if (v >= 1000) return (v / 1000).toFixed(0) + 'K'
@@ -45,11 +46,20 @@ const chartOptions = computed(() => ({
       }
     },
     y: {
-      ticks: { font: { size: 11 } }
+      ticks: { font: { size: 11 }, color: '#000' }
     }
   },
   plugins: {
     legend: { display: false },
+    datalabels: {
+      color: '#000',
+      font: { weight: 'bold' as const, size: 11 },
+      formatter: (value: number) => {
+        if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
+        if (value >= 1000) return (value / 1000).toFixed(0) + 'K'
+        return value
+      }
+    },
     tooltip: {
       callbacks: {
         label: (ctx: any) => {

@@ -85,21 +85,19 @@ function formatNum(n: number) {
 
 <template>
   <div class="ranking-view fade-in-up">
-    <div class="view-header">
-      <h1 class="view-title">Ranking nacional</h1>
-      <p class="view-subtitle">Universidades ordenadas por porcentaje de Acceso Abierto</p>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-      <div class="card-body py-3 d-flex flex-column flex-sm-row align-items-center gap-3">
-        <label class="fw-semibold text-muted small text-uppercase" style="letter-spacing:0.04em">Año:</label>
-        <select v-model="selectedYear" class="form-select form-select-sm" style="width:auto;max-width:200px">
-          <option :value="null" disabled>Selecciona un año</option>
-          <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
-        </select>
-        <small v-if="availableYears.length > 0 && ranking.length > 0" class="text-muted fw-medium">
-          {{ ranking.length }} universidades con datos en {{ selectedYear }}
-        </small>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Ranking nacional</h1>
+        <p class="page-subtitle">Universidades ordenadas por porcentaje de Acceso Abierto</p>
+      </div>
+      <div class="page-actions">
+        <div class="year-selector">
+          <label class="year-label">Año</label>
+          <select v-model="selectedYear" class="form-select form-select-sm">
+            <option :value="null" disabled>Selecciona</option>
+            <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -122,108 +120,223 @@ function formatNum(n: number) {
       <p class="mt-2">No hay datos de ranking para {{ selectedYear }}. Cosecha universidades primero.</p>
     </div>
 
-    <div v-else class="card shadow-sm">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th class="text-center" style="width:60px">#</th>
-              <th>Universidad</th>
-              <th class="text-center">Total artículos</th>
-              <th class="text-center">Acceso Abierto</th>
-              <th class="text-center d-none d-md-table-cell">Cerrados</th>
-              <th class="text-center d-none d-sm-table-cell">% OA</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, idx) in ranking" :key="item.institutionId"
-              @click="router.push('/institution/' + item.institutionId)"
-              style="cursor:pointer">
-              <td class="text-center">
-                <span class="badge rounded-pill"
-                  :class="idx === 0 ? 'text-bg-warning' : idx <= 3 ? 'text-bg-info' : 'text-bg-light text-dark'">
-                  {{ idx + 1 }}
-                </span>
-              </td>
-              <td class="fw-semibold">{{ item.institutionName }}</td>
-              <td class="text-center">{{ formatNum(item.totalPublications) }}</td>
-              <td class="text-center">
-                <span class="badge" :class="item.oaPercentage >= 70 ? 'text-bg-success' : item.oaPercentage >= 50 ? 'text-bg-warning' : 'text-bg-danger'">
-                  {{ formatNum(item.openAccessCount) }}
-                </span>
-              </td>
-              <td class="text-center d-none d-md-table-cell">{{ formatNum(item.closedCount) }}</td>
-              <td class="text-center d-none d-sm-table-cell">
-                <div class="d-flex align-items-center gap-2">
-                  <div class="progress flex-grow-1" style="height:10px;max-width:100px">
-                    <div class="progress-bar"
-                      :class="item.oaPercentage >= 70 ? 'bg-success' : item.oaPercentage >= 50 ? 'bg-warning' : 'bg-danger'"
-                      :style="{ width: item.oaPercentage + '%' }">
-                    </div>
+    <template v-else>
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th class="text-center" style="width:60px">#</th>
+                <th>Universidad</th>
+                <th class="text-center">Total artículos</th>
+                <th class="text-center">Acceso Abierto</th>
+                <th class="text-center d-none d-md-table-cell">Cerrados</th>
+                <th class="text-center d-none d-sm-table-cell">% OA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in ranking" :key="item.institutionId"
+                @click="router.push('/institution/' + item.institutionId)"
+                style="cursor:pointer">
+                <td class="text-center">
+                  <span class="rank-badge" :class="{ 'rank-gold': idx === 0, 'rank-silver': idx <= 3 }">
+                    {{ idx + 1 }}
+                  </span>
+                </td>
+                <td class="fw-semibold">{{ item.institutionName }}</td>
+                <td class="text-center">{{ formatNum(item.totalPublications) }}</td>
+                <td class="text-center">
+                  <span class="oa-badge" :class="oaBadgeClass(item.oaPercentage)">
+                    {{ formatNum(item.openAccessCount) }}
+                  </span>
+                </td>
+                <td class="text-center d-none d-md-table-cell">{{ formatNum(item.closedCount) }}</td>
+                <td class="text-center d-none d-sm-table-cell">
+                  <div class="oa-bar-container">
+                    <div class="oa-bar" :class="oaBarClass(item.oaPercentage)" :style="{ width: item.oaPercentage + '%' }"></div>
+                    <span class="oa-pct">{{ item.oaPercentage }}%</span>
                   </div>
-                  <small class="fw-semibold">{{ item.oaPercentage }}%</small>
-                </div>
-              </td>
-            </tr>
-
-            <tr v-if="ranking.length === 0 && selectedYear">
-              <td colspan="6" class="text-center py-5 text-muted">
-                <i class="bi bi-inbox" style="font-size:2rem"></i>
-                <p class="mt-2">No hay datos de ranking disponibles. Cosecha alguna universidad primero.</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div v-if="selectedYear" class="card shadow-sm mt-4">
-      <div class="card-body">
-        <h5 class="chart-section-title">Coste APC vs % Acceso Abierto — {{ selectedYear }}</h5>
-        <p class="chart-section-sub">Cada burbuja representa una universidad. Tamaño = volumen de publicaciones.</p>
-        <div v-if="scatterLoading" class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-primary" role="status">
-            <span class="visually-hidden">Cargando...</span>
-          </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <RankingScatterChart v-else :data="scatterData" />
       </div>
-    </div>
+
+      <div class="card mt-4">
+        <div class="card-body">
+          <h3 class="card-title-sm">Coste APC vs % Acceso Abierto — {{ selectedYear }}</h3>
+          <p class="card-subtitle">Cada burbuja representa una universidad. Tamaño = volumen de publicaciones.</p>
+          <div v-if="scatterLoading" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Cargando...</span>
+            </div>
+          </div>
+          <RankingScatterChart v-else :data="scatterData" />
+        </div>
+      </div>
+    </template>
   </div>
 </template>
+
+<script lang="ts">
+function oaBadgeClass(pct: number): string {
+  if (pct >= 70) return 'oa-high'
+  if (pct >= 50) return 'oa-mid'
+  return 'oa-low'
+}
+
+function oaBarClass(pct: number): string {
+  if (pct >= 70) return 'bar-high'
+  if (pct >= 50) return 'bar-mid'
+  return 'bar-low'
+}
+</script>
 
 <style scoped>
 .ranking-view {
   max-width: 100%;
 }
 
-.view-header {
-  margin-bottom: var(--space-lg);
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+  flex-wrap: wrap;
 }
 
-.view-title {
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  margin-bottom: 0;
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--color-text-primary);
 }
 
-.view-subtitle {
-  font-size: 0.9rem;
+.page-subtitle {
+  font-size: 0.875rem;
   color: var(--color-text-secondary);
-  margin-top: var(--space-xs);
+  margin-top: 0.25rem;
 }
 
-.chart-section-title {
-  font-size: 0.85rem;
+.page-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-md);
+}
+
+.year-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.year-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Table styles */
+.table > :not(caption) > * > * {
+  padding: 0.85rem 1rem;
+}
+
+/* Rank badge */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+}
+
+.rank-gold {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.rank-silver {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+/* OA badge */
+.oa-badge {
+  display: inline-block;
+  padding: 0.25em 0.75em;
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.oa-high {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.oa-mid {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.oa-low {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+/* OA bar */
+.oa-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.oa-bar {
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex: 1;
+  max-width: 100px;
+}
+
+.bar-high {
+  background: var(--color-success);
+}
+
+.bar-mid {
+  background: var(--color-warning);
+}
+
+.bar-low {
+  background: var(--color-danger);
+}
+
+.oa-pct {
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-width: 48px;
+  text-align: right;
+}
+
+.card-title-sm {
+  font-size: 1rem;
   font-weight: 700;
   color: var(--color-text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
-.chart-section-sub {
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
+.card-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
   margin-bottom: var(--space-md);
 }
 </style>

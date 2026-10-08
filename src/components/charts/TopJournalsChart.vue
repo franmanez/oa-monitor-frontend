@@ -11,7 +11,7 @@ const props = defineProps<{
 }>()
 
 const topJournals = computed(() => {
-  return [...props.journals].reverse()
+  return [...props.journals]
 })
 
 const chartData = computed(() => ({
@@ -35,15 +35,20 @@ const chartOptions = computed(() => ({
   indexAxis: 'y' as const,
   scales: {
     x: {
-      title: { display: true, text: 'Publicaciones' },
-      beginAtZero: true
+      title: { display: true, text: 'Publicaciones', color: '#000' },
+      beginAtZero: true,
+      ticks: { color: '#000' }
     },
     y: {
-      ticks: { font: { size: 11 } }
+      ticks: { font: { size: 11 }, color: '#000' }
     }
   },
   plugins: {
     legend: { display: false },
+    datalabels: {
+      color: '#000',
+      font: { weight: 'bold' as const, size: 11 }
+    },
     tooltip: {
       callbacks: {
         label: (ctx: any) => ` ${ctx.raw} publicaciones`
