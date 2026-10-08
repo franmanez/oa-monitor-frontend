@@ -3,8 +3,12 @@ import { computed } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js'
 import type { JournalCountItem } from '@/stores/types'
+import { useTheme } from '@/composables/useTheme'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
+
+const { isDark } = useTheme()
+const axisColor = computed(() => (isDark.value ? '#f1f5f9' : '#000000'))
 
 const props = defineProps<{
   journals: JournalCountItem[]
@@ -22,7 +26,7 @@ const chartData = computed(() => ({
   datasets: [{
     data: topJournals.value.map(j => j.publicationCount),
     backgroundColor: topJournals.value.map((_, i) =>
-      `rgba(16, 185, 129, ${0.3 + 0.6 * (i / Math.max(topJournals.value.length - 1, 1))})`
+      `rgba(16, 185, 129, ${0.9 - 0.6 * (i / Math.max(topJournals.value.length - 1, 1))})`
     ),
     borderWidth: 0,
     borderRadius: 3
@@ -35,18 +39,18 @@ const chartOptions = computed(() => ({
   indexAxis: 'y' as const,
   scales: {
     x: {
-      title: { display: true, text: 'Publicaciones', color: '#000' },
+      title: { display: true, text: 'Publicaciones', color: axisColor.value },
       beginAtZero: true,
-      ticks: { color: '#000' }
+      ticks: { color: axisColor.value }
     },
     y: {
-      ticks: { font: { size: 11 }, color: '#000' }
+      ticks: { font: { size: 11 }, color: axisColor.value }
     }
   },
   plugins: {
     legend: { display: false },
     datalabels: {
-      color: '#000',
+      color: axisColor.value,
       font: { weight: 'bold' as const, size: 11 }
     },
     tooltip: {

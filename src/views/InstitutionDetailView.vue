@@ -300,7 +300,7 @@ function formatNum(n: number) {
                   style="width:32px;height:32px">
                   <i class="bi bi-file-text text-primary"></i>
                 </span>
-                <small class="text-muted fw-medium">Publicaciones</small>
+                <small class="text-muted fw-medium">Artículos de revista</small>
               </div>
               <p class="h3 fw-bold mb-0">{{ formatNum(store.filteredSummary?.totalPublications ?? 0) }}</p>
               <small class="text-muted">{{ store.selectedYear === 'all' ? 'Total acumulado' : 'Año ' + store.selectedYear }}</small>
@@ -323,7 +323,7 @@ function formatNum(n: number) {
                 :class="(store.filteredSummary?.oaPercentage ?? 0) >= 70 ? 'text-success' : 'text-warning'">
                 {{ store.filteredSummary?.oaPercentage ?? 0 }}%
               </p>
-              <small class="text-muted">{{ formatNum(store.filteredSummary?.foundInRepository ?? 0) }} publicaciones en abierto</small>
+              <small class="text-muted">{{ formatNum(store.filteredSummary?.foundInRepository ?? 0) }} artículos en abierto</small>
             </div>
           </div>
         </div>
@@ -423,11 +423,11 @@ function formatNum(n: number) {
           </div>
           <div v-else class="row g-3">
             <div class="col-lg-6">
-              <h6 class="fw-semibold small text-muted text-uppercase mb-2">Coste APC por revista</h6>
+              <h6 class="fw-semibold small text-muted mb-2">Coste APC por revista</h6>
               <JournalApcBarChart :journals="journalApcData" />
             </div>
             <div class="col-lg-6">
-              <h6 class="fw-semibold small text-muted text-uppercase mb-2">Top 10 revistas por volumen</h6>
+              <h6 class="fw-semibold small text-muted mb-2">Top 10 revistas por volumen</h6>
               <TopJournalsChart :journals="journalTopData" />
             </div>
           </div>
@@ -437,7 +437,7 @@ function formatNum(n: number) {
       <div class="card shadow-sm mb-4">
         <div class="card-body">
           <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3">
-            <h5 class="card-title fs-6 fw-semibold mb-0">Publicaciones</h5>
+            <h5 class="card-title fs-6 fw-semibold mb-0">Artículos de revista</h5>
             <div class="d-flex gap-2">
               <select v-model="filterStatus" @change="pubsPage=0;fetchPublications()" class="form-select form-select-sm" style="width:auto">
                 <option value="">Todos los estados</option>
@@ -465,7 +465,7 @@ function formatNum(n: number) {
 
           <div v-else-if="pubs.length === 0" class="text-center py-4 text-muted">
             <i class="bi bi-journal-text" style="font-size:1.5rem"></i>
-            <p class="small mt-1">No hay publicaciones para este filtro</p>
+            <p class="small mt-1">No hay artículos de revista para este filtro</p>
           </div>
 
           <div v-else class="table-responsive">
@@ -528,9 +528,9 @@ function formatNum(n: number) {
               <span v-if="pubsTotal > 0">
                 Mostrando <span class="fw-semibold">{{ pubsPage * pubsSize + 1 }}</span>
                 – <span class="fw-semibold">{{ Math.min((pubsPage + 1) * pubsSize, pubsTotal) }}</span>
-                de <span class="fw-semibold">{{ pubsTotal }}</span> publicaciones
+                de <span class="fw-semibold">{{ pubsTotal }}</span> artículos de revista
               </span>
-              <span v-else>Sin publicaciones</span>
+              <span v-else>Sin artículos de revista</span>
             </small>
             <ul v-if="pubsPages > 1" class="pagination pagination-sm mb-0">
               <li class="page-item" :class="{ disabled: pubsPage === 0 }">
@@ -599,7 +599,7 @@ function formatNum(n: number) {
           <input v-model.number="harvestYear" type="number" class="form-control" min="2000" max="2030" step="1">
           <small class="text-muted mt-1 d-block">
             Se cosecharán los artículos tipo "Article" depositados en el repositorio institucional de {{ store.institution?.name }} durante {{ harvestYear }}.
-            Los artículos encontrados se marcarán como GREEN OA y se vincularán por DOI a las publicaciones existentes.
+            Los artículos encontrados se marcarán como GREEN OA y se vincularán por DOI a los artículos existentes.
           </small>
         </div>
         <div class="modal-footer">
@@ -626,7 +626,7 @@ function formatNum(n: number) {
 }
 
 .sortable-th:hover {
-  color: var(--color-brand);
+  color: var(--color-primary);
 }
 
 .detail-title {

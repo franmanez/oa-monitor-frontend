@@ -4,8 +4,12 @@ import { useRouter } from 'vue-router'
 import { Scatter } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, Tooltip, Legend } from 'chart.js'
 import type { InstitutionScatterItem } from '@/stores/types'
+import { useTheme } from '@/composables/useTheme'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, Tooltip, Legend)
+
+const { isDark } = useTheme()
+const axisColor = computed(() => (isDark.value ? '#f1f5f9' : '#000000'))
 
 const props = defineProps<{
   data: InstitutionScatterItem[]
@@ -40,24 +44,29 @@ const chartOptions = computed(() => ({
   maintainAspectRatio: false,
   scales: {
     x: {
-      title: { display: true, text: '% Acceso Abierto' },
+      title: { display: true, text: '% Acceso Abierto', color: axisColor.value },
+      ticks: { color: axisColor.value },
+      grid: { color: isDark.value ? 'rgba(148, 163, 184, 0.12)' : 'rgba(100, 116, 139, 0.12)' },
       min: 0,
       max: 100
     },
     y: {
-      title: { display: true, text: 'Coste APC estimado (€)' },
+      title: { display: true, text: 'Coste APC estimado (€)', color: axisColor.value },
       ticks: {
+        color: axisColor.value,
         callback: (v: any) => {
           if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M'
           if (v >= 1000) return (v / 1000).toFixed(0) + 'K'
           return v
         }
-      }
+      },
+      grid: { color: isDark.value ? 'rgba(148, 163, 184, 0.12)' : 'rgba(100, 116, 139, 0.12)' }
     }
   },
   plugins: {
     legend: {
       labels: {
+        color: axisColor.value,
         usePointStyle: true,
         generateLabels: () => [
           { text: 'Con datos APC', fillStyle: 'rgba(37, 99, 235, 0.6)', strokeStyle: 'rgba(37, 99, 235, 0.9)', pointStyle: 'circle' as const },

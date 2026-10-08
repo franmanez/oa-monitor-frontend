@@ -3,8 +3,12 @@ import { computed } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js'
 import type { JournalApcItem } from '@/stores/types'
+import { useTheme } from '@/composables/useTheme'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
+
+const { isDark } = useTheme()
+const axisColor = computed(() => (isDark.value ? '#f1f5f9' : '#000000'))
 
 const props = defineProps<{
   journals: JournalApcItem[]
@@ -22,7 +26,7 @@ const chartData = computed(() => ({
   datasets: [{
     data: topJournals.value.map(j => j.totalApcCost || 0),
     backgroundColor: topJournals.value.map((_, i) =>
-      `rgba(37, 99, 235, ${0.3 + 0.6 * (i / Math.max(topJournals.value.length - 1, 1))})`
+      `rgba(37, 99, 235, ${0.9 - 0.6 * (i / Math.max(topJournals.value.length - 1, 1))})`
     ),
     borderWidth: 0,
     borderRadius: 3
@@ -35,9 +39,9 @@ const chartOptions = computed(() => ({
   indexAxis: 'y' as const,
   scales: {
     x: {
-      title: { display: true, text: 'Coste APC estimado (€)', color: '#000' },
+      title: { display: true, text: 'Coste APC estimado (€)', color: axisColor.value },
       ticks: {
-        color: '#000',
+        color: axisColor.value,
         callback: (v: any) => {
           if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M'
           if (v >= 1000) return (v / 1000).toFixed(0) + 'K'
@@ -46,13 +50,13 @@ const chartOptions = computed(() => ({
       }
     },
     y: {
-      ticks: { font: { size: 11 }, color: '#000' }
+      ticks: { font: { size: 11 }, color: axisColor.value }
     }
   },
   plugins: {
     legend: { display: false },
     datalabels: {
-      color: '#000',
+      color: axisColor.value,
       font: { weight: 'bold' as const, size: 11 },
       formatter: (value: number) => {
         if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
