@@ -1,5 +1,5 @@
 {
-  "name": "oa-monitor-frontend",
+  "name": "openscope-frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,6 +14,7 @@
     "bootstrap-icons": "^1.11.3",
     "chart.js": "^4.5.1",
     "chartjs-plugin-datalabels": "^2.2.0",
+    "marked": "^18.1.1",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
     "vue-chartjs": "^5.3.3",

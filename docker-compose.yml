@@ -1,7 +1,7 @@
 services:
   nginx:
     image: nginx:alpine
-    container_name: oa-monitor-frontend
+    container_name: openscope-frontend
     ports:
       - "80:80"
     volumes:

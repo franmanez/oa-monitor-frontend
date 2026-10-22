@@ -245,31 +245,11 @@ function formatNum(n: number) {
       </div>
     </div>
 
-    <div class="d-flex align-items-center justify-content-between gap-2 mb-4">
-      <div class="d-flex align-items-center gap-2">
-        <button @click="showHarvestModal = true" :disabled="harvesting"
-          class="btn btn-outline-success btn-sm">
-          <i v-if="harvesting" class="bi bi-arrow-repeat spinner-border spinner-border-sm me-1"></i>
-          <i v-else class="bi bi-cloud-download me-1"></i>
-          {{ harvesting ? 'Cosechando...' : 'Cosechar OpenAlex' }}
-        </button>
-        <button v-if="store.institution.oaiEndpoint" @click="showOaiHarvestModal = true" :disabled="harvestingOai"
-          class="btn btn-outline-info btn-sm">
-          <i v-if="harvestingOai" class="bi bi-arrow-repeat spinner-border spinner-border-sm me-1"></i>
-          <i v-else class="bi bi-building me-1"></i>
-          {{ harvestingOai ? 'Cosechando...' : 'Cosechar Repositorio' }}
-        </button>
-        <button @click="calculateApc" :disabled="calculatingApc"
-          class="btn btn-outline-primary btn-sm">
-          <i v-if="calculatingApc" class="bi bi-arrow-repeat spinner-border spinner-border-sm me-1"></i>
-          <i v-else class="bi bi-calculator me-1"></i>
-          {{ calculatingApc ? 'Calculando...' : 'Calcular APC por artículo' }}
-        </button>
-        <a           :href="`/api/institutions/${route.params.id}/export${store.selectedYear && store.selectedYear !== 'all' ? '?year=' + store.selectedYear : ''}`"
-          class="btn btn-outline-secondary btn-sm" download>
-          <i class="bi bi-download me-1"></i>CSV
-        </a>
-      </div>
+    <div class="d-flex align-items-center justify-content-end gap-2 mb-4">
+      <a :href="`/api/institutions/${route.params.id}/export${store.selectedYear && store.selectedYear !== 'all' ? '?year=' + store.selectedYear : ''}`"
+        class="btn btn-outline-secondary btn-sm" download>
+        <i class="bi bi-download me-1"></i>CSV
+      </a>
       <select :value="store.selectedYear" @change="store.setYear(($event.target as HTMLSelectElement).value)"
         class="form-select form-select-sm" style="width:auto">
         <option v-for="y in store.availableYears" :key="y" :value="y">{{ y }}</option>
@@ -358,11 +338,9 @@ function formatNum(n: number) {
                   </div>
                 </div>
               </div>
-              <div v-if="(store.filteredApc?.coveredByAgreements ?? 0) > 0"
-                class="d-flex align-items-center gap-1 mt-3 small text-success">
-                <i class="bi bi-shield-check"></i>
-                <span>Cubierto por acuerdos: {{ formatEur(store.filteredApc?.coveredByAgreements ?? 0) }}</span>
-              </div>
+              <small class="text-muted d-block mt-2" style="font-size:0.7rem">
+                <i class="bi bi-info-circle me-1"></i>Estimación basada en precios APC por año (OpenAPC). No refleja posibles acuerdos transformativos institucionales que cubran total o parcialmente estos costes.
+              </small>
             </div>
           </div>
         </div>
@@ -514,7 +492,6 @@ function formatNum(n: number) {
                   <td class="text-end d-none d-lg-table-cell small">
                     <span v-if="pub.apcEstimatedEur != null" class="fw-semibold">
                       {{ formatEur(pub.apcEstimatedEur) }}
-                      <i v-if="pub.apcCoveredByAgreement" class="bi bi-shield-check text-success ms-1" title="Cubierto por acuerdo"></i>
                     </span>
                     <span v-else class="text-muted">—</span>
                   </td>

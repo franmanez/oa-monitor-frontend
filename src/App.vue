@@ -42,6 +42,8 @@ const navItems = [
   { path: '/', icon: 'bi-house', label: 'Inicio' },
   { path: '/institutions', icon: 'bi-building', label: 'Universidades' },
   { path: '/ranking', icon: 'bi-trophy', label: 'Ranking' },
+  { path: '/admin', icon: 'bi-gear', label: 'Administración' },
+  { path: '/informacion', icon: 'bi-info-circle', label: 'Información' },
 ]
 </script>
 
