@@ -9,7 +9,7 @@ const features = [
   {
     icon: 'bi-diagram-3',
     title: 'Repositorio institucional',
-    desc: 'Cosechamos el repositorio propio de la universidad (DSpace) por OAI-PMH. Detecta artículos depositados en casa que OpenAlex no ve y los marca como GREEN.',
+    desc: 'Cosechamos el repositorio propio de la universidad por OAI-PMH. Detecta artículos depositados en casa que OpenAlex no ve y los marca como GREEN.',
     color: 'var(--color-accent)'
   },
   {
@@ -53,7 +53,7 @@ const steps = [
         <span>OpenScope — Acceso Abierto en Revistas</span>
       </div>
       <h1 class="hero-title">
-        Monitor de Acceso Abierto a revistas de <span class="text-gradient">universidades españolas</span>
+        Monitor de Acceso Abierto en artículos de revistas de <span class="text-gradient">universidades españolas</span>
       </h1>
       <p class="hero-desc">
         Herramienta automatizada que audita el estado de Acceso Abierto de los artículos
@@ -77,10 +77,6 @@ const steps = [
       <div class="section-header">
         <span class="section-tag">Fuentes de datos</span>
         <h2 class="section-title">De dónde vienen los datos</h2>
-        <p class="section-desc">
-          Tres fuentes abiertas y un protocolo estándar para construir una imagen
-          completa y fiable del Acceso Abierto en cada universidad.
-        </p>
       </div>
       <div class="features-grid">
         <div v-for="f in features" :key="f.title" class="feature-card">
