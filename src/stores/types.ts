@@ -103,3 +103,35 @@ export interface InstitutionScatterItem {
   totalApcCost: number
   hasApcData: boolean
 }
+
+export interface ComplianceData {
+  institutionId: string
+  institutionName: string
+  year: number | null
+  totalPublications: number
+  strongOaPct: number
+  repositoryPct: number
+  broadOaPct: number
+  overallScore: number
+  grade: string
+  strongOaCount: number
+  repositoryCount: number
+  broadOaCount: number
+}
+
+export interface RegionalStats {
+  community: string
+  universityCount: number
+  totalPublications: number
+  oaPercentage: number
+  strongOaPct: number
+  repositoryPct: number
+  diamondPct: number
+  goldPct: number
+  greenPct: number
+  hybridPct: number
+  bronzePct: number
+  closedPct: number
+  complianceScore: number
+  complianceGrade: string
+}

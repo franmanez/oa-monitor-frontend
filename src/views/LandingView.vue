@@ -3,19 +3,19 @@ const features = [
   {
     icon: 'bi-database',
     title: 'OpenAlex',
-    desc: 'API académica abierta con más de 250M de publicaciones. Obtenemos artículos, revistas, citas y estado de Acceso Abierto por cada universidad.',
+    desc: 'API académica abierta con más de 250M de publicaciones. Trae los artículos de cada universidad por ROR y año, con revista, DOI y estado OA.',
     color: 'var(--color-primary)'
   },
   {
     icon: 'bi-diagram-3',
-    title: 'Repositorios OAI-PMH',
-    desc: 'Protocolo estándar para recolectar metadatos de repositorios institucionales (DSpace). Detecta artículos depositados en repositorio propio.',
+    title: 'Repositorio institucional',
+    desc: 'Cosechamos el repositorio propio de la universidad (DSpace) por OAI-PMH. Detecta artículos depositados en casa que OpenAlex no ve y los marca como GREEN.',
     color: 'var(--color-accent)'
   },
   {
     icon: 'bi-currency-euro',
-    title: 'Precios APC',
-    desc: 'Dataset OpenAPC con precios reales de Article Processing Charges. Cruce por ISSN para estimar el coste de publicación en Acceso Abierto.',
+    title: 'Precios APC reales',
+    desc: 'Dataset OpenAPC con más de 269.000 APCs pagadas en Europa. Cruce por ISSN y año (mediana) para estimar qué cuesta publicar en abierto.',
     color: 'var(--color-success)'
   }
 ]
@@ -30,10 +30,10 @@ const oaStatuses = [
 ]
 
 const steps = [
-  { num: '01', title: 'Cosecha', desc: 'Recopilamos artículos de cada universidad desde OpenAlex y sus repositorios OAI-PMH.' },
-  { num: '02', title: 'Resolución', desc: 'Combinamos ambas fuentes para determinar el estado OA real de cada publicación.' },
-  { num: '03', title: 'Enriquecimiento', desc: 'Cruzamos ISSNs con precios APC reales para estimar el coste económico.' },
-  { num: '04', title: 'Auditoría', desc: 'Visualizamos resultados por universidad con comparativas, ranking y exportación CSV.' }
+  { num: '01', title: 'Catálogo desde OpenAlex', desc: 'Por cada universidad y año consultamos OpenAlex filtrando solo artículos. Entran DOI, revista, título y el estado OA que declara el índice.' },
+  { num: '02', title: 'Cruce con el repositorio', desc: 'Recorremos el repositorio de la universidad por OAI-PMH y fusionamos por DOI: lo que está depositado en casa se fuerza a GREEN y no se duplica.' },
+  { num: '03', title: 'Precio APC de cada revista', desc: 'Cruzamos el ISSN con los precios pagados en OpenAPC (mediana por revista y año) para estimar el coste de los artículos GOLD e HYBRID.' },
+  { num: '04', title: 'Informe y comparativa', desc: 'Resumen OA y coste estimado por universidad, ranking nacional por año, revistas que más gastan y exportación completa en CSV.' }
 ]
 </script>
 
@@ -56,9 +56,9 @@ const steps = [
         Monitor de Acceso Abierto a revistas de <span class="text-gradient">universidades españolas</span>
       </h1>
       <p class="hero-desc">
-        Herramienta automatizada que audita el estado de Acceso Abierto de las publicaciones
-        de las universidades REBIUN, combinando datos de OpenAlex con los repositorios
-        institucionales y precios reales de APC.
+        Herramienta automatizada que audita el estado de Acceso Abierto de los artículos
+        de revista de las universidades españolas, combinando OpenAlex con los
+        repositorios institucionales y precios reales de APC.
       </p>
       <div class="hero-actions">
         <router-link to="/institutions" class="btn-primary-lg">
@@ -78,7 +78,7 @@ const steps = [
         <span class="section-tag">Fuentes de datos</span>
         <h2 class="section-title">De dónde vienen los datos</h2>
         <p class="section-desc">
-          Integramos fuentes abiertas y protocolos estándar para construir una imagen
+          Tres fuentes abiertas y un protocolo estándar para construir una imagen
           completa y fiable del Acceso Abierto en cada universidad.
         </p>
       </div>
@@ -97,10 +97,10 @@ const steps = [
     <section class="section">
       <div class="section-header">
         <span class="section-tag">Cómo funciona</span>
-        <h2 class="section-title">Pipeline de auditoría</h2>
+        <h2 class="section-title">De la fuente al informe</h2>
         <p class="section-desc">
-          Un proceso en cuatro pasos que transforma datos académicos brutos
-          en inteligencia accionable para los gestores universitarios.
+          Así se audita una universidad: cuatro pasos que convierten datos abiertos
+          en una foto comparable de su Acceso Abierto.
         </p>
       </div>
       <div class="steps-grid">
@@ -110,6 +110,11 @@ const steps = [
           <p class="step-desc">{{ s.desc }}</p>
         </div>
       </div>
+      <p class="pipeline-example">
+        <i class="bi bi-signpost-split"></i>
+        Ejemplo real (UPC, 2025): 2.817 artículos de OpenAlex + 342 del repositorio
+        → <strong>3.146 artículos únicos</strong>, fusionados por DOI.
+      </p>
     </section>
 
     <!-- OA statuses -->
@@ -130,6 +135,94 @@ const steps = [
           </div>
           <p class="status-desc">{{ s.desc }}</p>
         </div>
+      </div>
+    </section>
+
+    <!-- Compliance Index -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-tag">Índice de Cumplimiento Normativo</span>
+        <h2 class="section-title">Evaluación del cumplimiento con el Plan S y la Ley de la Ciencia</h2>
+        <p class="section-desc">
+          OpenScope calcula un índice propio que mide el grado de alineación de cada
+          universidad con los principios del Plan S europeo y el artículo 37 de la
+          Ley de la Ciencia (Ley 17/2022).
+        </p>
+      </div>
+
+      <div class="compliance-metrics-grid">
+        <div class="compliance-metric-card">
+          <div class="metric-weight">40%</div>
+          <h3 class="metric-title">OA fuerte</h3>
+          <p class="metric-desc">
+            Artículos en rutas OA plenas sin restricciones:
+            <strong>DIAMOND + GOLD + GREEN</strong>. Cumplen Plan S sin condiciones.
+          </p>
+        </div>
+        <div class="compliance-metric-card">
+          <div class="metric-weight">30%</div>
+          <h3 class="metric-title">Depósito en repositorio</h3>
+          <p class="metric-desc">
+            Porcentaje de artículos depositados en repositorio institucional.
+            Mide directamente el <strong>artículo 37 de la LCI</strong>.
+          </p>
+        </div>
+        <div class="compliance-metric-card">
+          <div class="metric-weight">30%</div>
+          <h3 class="metric-title">OA amplio</h3>
+          <p class="metric-desc">
+            Todo menos CLOSED. Incluye HYBRID y BRONZE, que tienen limitaciones
+            pero indican que el artículo es accesible.
+          </p>
+        </div>
+      </div>
+
+      <div class="grade-scale">
+        <h3 class="grade-scale-title">Escala de notas</h3>
+        <div class="grade-scale-grid">
+          <div class="grade-item" style="--grade-color: #22c55e">
+            <span class="grade-label">A+</span>
+            <span class="grade-range">≥ 90</span>
+          </div>
+          <div class="grade-item" style="--grade-color: #22c55e">
+            <span class="grade-label">A</span>
+            <span class="grade-range">≥ 80</span>
+          </div>
+          <div class="grade-item" style="--grade-color: #3b82f6">
+            <span class="grade-label">B+</span>
+            <span class="grade-range">≥ 70</span>
+          </div>
+          <div class="grade-item" style="--grade-color: #3b82f6">
+            <span class="grade-label">B</span>
+            <span class="grade-range">≥ 60</span>
+          </div>
+          <div class="grade-item" style="--grade-color: #f59e0b">
+            <span class="grade-label">C+</span>
+            <span class="grade-range">≥ 50</span>
+          </div>
+          <div class="grade-item" style="--grade-color: #f59e0b">
+            <span class="grade-label">C</span>
+            <span class="grade-range">≥ 40</span>
+          </div>
+          <div class="grade-item" style="--grade-color: #ef4444">
+            <span class="grade-label">D</span>
+            <span class="grade-range">≥ 30</span>
+          </div>
+          <div class="grade-item" style="--grade-color: #ef4444">
+            <span class="grade-label">F</span>
+            <span class="grade-range">&lt; 30</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="methodology-note">
+        <i class="bi bi-info-circle"></i>
+        <p>
+          <strong>Metodología OpenScope:</strong> Este índice es una herramienta de monitorización
+          propia de OpenScope. No es un estándar oficial del Plan S ni de la AEI, pero está alineado
+          con sus principios. La escala y ponderaciones son internas y están diseñadas para ofrecer
+          una visión comparable del grado de cumplimiento normativo de cada institución.
+        </p>
       </div>
     </section>
 
@@ -384,6 +477,28 @@ const steps = [
   margin: 0;
 }
 
+.pipeline-example {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  margin: var(--space-md) auto 0;
+  max-width: 720px;
+  text-align: center;
+}
+
+.pipeline-example i {
+  color: var(--color-primary);
+  margin-right: var(--space-xs);
+}
+
+.pipeline-example strong {
+  color: var(--color-text-primary);
+}
+
 /* ===== OA Statuses ===== */
 .statuses-grid {
   display: grid;
@@ -446,5 +561,134 @@ const steps = [
   color: var(--color-text-secondary);
   margin: 0;
   padding: var(--space-md) var(--space-lg) var(--space-lg);
+}
+
+/* ===== Compliance Index ===== */
+.compliance-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+@media (max-width: 768px) {
+  .compliance-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compliance-metric-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  text-align: center;
+  transition: box-shadow var(--transition-base);
+}
+
+.compliance-metric-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.metric-weight {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+  margin-bottom: var(--space-sm);
+}
+
+.metric-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-sm);
+}
+
+.metric-desc {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.metric-desc strong {
+  color: var(--color-text-primary);
+}
+
+.grade-scale {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-lg);
+}
+
+.grade-scale-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-md);
+  text-align: center;
+}
+
+.grade-scale-grid {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.grade-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--grade-color) 10%, transparent);
+  min-width: 70px;
+}
+
+.grade-label {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--grade-color);
+  line-height: 1;
+}
+
+.grade-range {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.methodology-note {
+  display: flex;
+  gap: var(--space-md);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+}
+
+.methodology-note i {
+  color: var(--color-primary);
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.methodology-note p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.methodology-note strong {
+  color: var(--color-text-primary);
 }
 </style>

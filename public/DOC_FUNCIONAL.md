@@ -210,6 +210,113 @@ REBIUN (Red de Bibliotecas de las Universidades Españolas) agrupa a 76 universi
 
 ---
 
+## Índice de Cumplimiento Normativo
+
+### ¿Qué mide?
+
+El **Índice de Cumplimiento Normativo** evalúa el grado de alineación de cada universidad con:
+
+- **Plan S**: iniciativa europea de cOAlition S (2018) que exige acceso abierto inmediato a publicaciones financiadas con fondos públicos, sin períodos de embargo.
+- **Artículo 37 de la Ley de la Ciencia** (Ley 14/2011, modificada por Ley 17/2022): obligación de depositar en abierto la versión aceptada en repositorio institucional de forma inmediata.
+
+### Metodología
+
+> **Nota importante:** Este índice es una herramienta de monitorización **propia de OpenScope**. No es un estándar oficial del Plan S ni de la AEI, pero está alineado con sus principios.
+
+El score (0-100) se calcula como media ponderada de tres métricas:
+
+| Peso | Métrica | Estados OA incluidos | Justificación |
+|------|---------|---------------------|---------------|
+| **40%** | OA fuerte | DIAMOND + GOLD + GREEN | Cumple Plan S sin restricciones. Mayor peso porque representa acceso inmediato. |
+| **30%** | Depósito en repositorio | Artículos con `repositoryUrl` no nulo | Mide directamente el art. 37 LCI (obligación legal explícita). |
+| **30%** | OA amplio | Todo menos CLOSED | Visión global del acceso abierto. Incluye HYBRID y BRONZE que tienen limitaciones. |
+
+### Escala de notas
+
+| Nota | Score | Significado |
+|------|-------|-------------|
+| A+ | ≥ 90 | Excelente |
+| A | ≥ 80 | |
+| B+ | ≥ 70 | Notable |
+| B | ≥ 60 | |
+| C+ | ≥ 50 | Aceptable |
+| C | ≥ 40 | |
+| D | ≥ 30 | Insuficiente |
+| F | < 30 | |
+
+### ¿Por qué estas tres métricas?
+
+El Plan S y la normativa española exigen fundamentalmente dos cosas:
+
+1. **Que el artículo esté en abierto** (preferiblemente en rutas sin restricciones como DIAMOND, GOLD o GREEN)
+2. **Que esté depositado en un repositorio** (para garantizar acceso permanente)
+
+Las dos primeras métricas capturan los requisitos legales. La tercera (OA amplio) ofrece una visión más completa incluyendo rutas que, aunque no siempre cumplen Plan S al 100%, indican que el artículo es accesible.
+
+### Limitaciones
+
+Este índice se calcula a partir de datos abiertos. Existen factores que **no se pueden capturar** automáticamente:
+
+- **Acuerdos transformativos** institucionales que cubran total o parcialmente los APC
+- **Artículos correctamente depositados** pero no detectados por el harvest OAI-PMH
+- **Publicaciones OA de facto** que no están correctamente etiquetadas en las bases de datos
+- **Cobertura variable** según la universidad (algunas tienen mejor indexación en OpenAlex que otras)
+
+### Visualización en el frontend
+
+En el detalle de institución, el índice se muestra como:
+
+- **Gauge circular SVG** con la nota (A+/A/B+/...) coloreada según nivel
+- **3 progress bars** con semáforo (verde ≥70%, amarillo ≥50%, rojo <50%)
+- **Panel expandible** "¿Qué es esto?" con explicación completa de la metodología
+
+---
+
+## Análisis Regional por Comunidades Autónomas
+
+### ¿Qué analiza?
+
+La vista de Análisis Regional agrega los datos de todas las universidades de una misma comunidad autónoma para evaluar el compromiso con la Ciencia Abierta a nivel territorial. Permite responder preguntas como:
+
+- ¿Cómo de comprometida está mi comunidad con el Plan S y el art. 37 LCI?
+- ¿Funcionan las políticas públicas locales de I+D y repositorios?
+- ¿Hay diferencias en la composición de rutas OA entre comunidades?
+
+### Principios de lectura (para evitar comparaciones sesgadas)
+
+1. **Métricas relativas (%), no absolutas**: comparar el volumen total de artículos de Madrid o Cataluña frente a comunidades uniprovinciales no aporta información útil. La clave está en los porcentajes de cumplimiento.
+
+2. **Composición del tejido científico**: las rutas de OA varían según las áreas del conocimiento (biomedicina → Gold/Hybrid; humanidades → Diamond/Green). Comunidades con orientación biomédica tendrán un perfil distinto a las de mayor peso en ciencias sociales, sin que ello implique peor gestión.
+
+3. **Solo producción universitaria**: el análisis incluye exclusivamente universidades REBIUN. Los OPIs (CSIC, institutos de investigación sanitaria) siguen mandatos diferentes y no están incluidos.
+
+### Datos disponibles
+
+El endpoint `GET /api/institutions/stats/regional?year=` devuelve por cada comunidad:
+
+| Campo | Descripción |
+|-------|-------------|
+| `community` | Nombre de la comunidad autónoma |
+| `universityCount` | Número de universidades con datos |
+| `totalPublications` | Total de publicaciones |
+| `oaPercentage` | %OA amplio (todo menos CLOSED) |
+| `strongOaPct` | %OA fuerte (DIAMOND+GOLD+GREEN) |
+| `repositoryPct` | %depósito en repositorio |
+| `diamondPct`, `goldPct`, `greenPct`, `hybridPct`, `bronzePct`, `closedPct` | %por cada ruta individual |
+| `complianceScore` | Score de cumplimiento Plan S (0-100) |
+| `complianceGrade` | Nota (A+ a F) |
+
+### Visualización en el frontend
+
+La vista "Análisis Regional" (`/regional`) incluye:
+
+- **Barras apiladas**: una barra por comunidad, segmentada por ruta OA. Ordenadas por %OA (no por volumen).
+- **Tabla de métricas**: comunidad, nº universidades, publicaciones (contexto), %OA fuerte, %depósito, %OA amplio, nota compliance.
+- **Panel contextual expandible**: explica los 3 principios de lectura para interpretar correctamente los datos.
+- **Detalle expandible**: al hacer click en una comunidad, se muestra la distribución completa por ruta OA.
+
+---
+
 ## Actualización de datos
 
 Los datos deben actualizarse periódicamente:

@@ -24,6 +24,11 @@ const router = createRouter({
       component: () => import('@/views/RankingView.vue')
     },
     {
+      path: '/regional',
+      name: 'regional',
+      component: () => import('@/views/RegionalView.vue')
+    },
+    {
       path: '/admin',
       name: 'admin',
       component: () => import('@/views/AdminView.vue')

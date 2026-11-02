@@ -2,7 +2,7 @@
 import { onMounted, computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useInstitutionDetailStore } from '@/stores/institutionDetail'
-import type { PublicationItem, PublicationPageResponse, JournalApcItem, JournalCountItem } from '@/stores/types'
+import type { PublicationItem, PublicationPageResponse, JournalApcItem, JournalCountItem, ComplianceData } from '@/stores/types'
 import OaPieChart from '@/components/charts/OaPieChart.vue'
 import JournalApcBarChart from '@/components/charts/JournalApcBarChart.vue'
 import TopJournalsChart from '@/components/charts/TopJournalsChart.vue'
@@ -37,6 +37,57 @@ const activeTab = ref('revistas')
 const journalApcData = ref<JournalApcItem[]>([])
 const journalTopData = ref<JournalCountItem[]>([])
 const journalsLoading = ref(false)
+const compliance = ref<ComplianceData | null>(null)
+const complianceLoading = ref(false)
+const showComplianceInfo = ref(false)
+
+async function fetchCompliance() {
+  complianceLoading.value = true
+  try {
+    const yearParam = store.selectedYear && store.selectedYear !== 'all' ? `?year=${store.selectedYear}` : ''
+    const res = await fetch(`/api/institutions/${route.params.id}/compliance${yearParam}`)
+    compliance.value = res.ok ? await res.json() : null
+  } catch {
+    compliance.value = null
+  } finally {
+    complianceLoading.value = false
+  }
+}
+
+const gradeColor = computed(() => {
+  if (!compliance.value) return '#6b7280'
+  const s = compliance.value.overallScore
+  if (s >= 80) return '#22c55e'
+  if (s >= 60) return '#3b82f6'
+  if (s >= 40) return '#f59e0b'
+  return '#ef4444'
+})
+
+const gradeLabel = computed(() => {
+  if (!compliance.value) return ''
+  const s = compliance.value.overallScore
+  if (s >= 80) return 'Excelente'
+  if (s >= 60) return 'Notable'
+  if (s >= 40) return 'Aceptable'
+  return 'Insuficiente'
+})
+
+function semaforoClass(pct: number): string {
+  if (pct >= 70) return 'sem-green'
+  if (pct >= 50) return 'sem-yellow'
+  return 'sem-red'
+}
+
+const gradeScale = [
+  { grade: 'A+', label: 'Score >= 90 · Excelente', color: '#22c55e' },
+  { grade: 'A', label: 'Score >= 80', color: '#22c55e' },
+  { grade: 'B+', label: 'Score >= 70 · Notable', color: '#3b82f6' },
+  { grade: 'B', label: 'Score >= 60', color: '#3b82f6' },
+  { grade: 'C+', label: 'Score >= 50 · Aceptable', color: '#f59e0b' },
+  { grade: 'C', label: 'Score >= 40', color: '#f59e0b' },
+  { grade: 'D', label: 'Score >= 30 · Insuficiente', color: '#ef4444' },
+  { grade: 'F', label: 'Score < 30', color: '#ef4444' },
+]
 
 async function fetchJournalData() {
   journalsLoading.value = true
@@ -135,12 +186,13 @@ async function fetchPublications() {
   }
 }
 
-watch(() => store.selectedYear, () => { pubsPage.value = 0; fetchPublications(); fetchJournalData() })
+watch(() => store.selectedYear, () => { pubsPage.value = 0; fetchPublications(); fetchJournalData(); fetchCompliance() })
 
 onMounted(() => {
   store.fetchAll(route.params.id as string)
   fetchPublications()
   fetchJournalData()
+  fetchCompliance()
 })
 
 function statusBadgeClass(status: string | null) {
@@ -369,6 +421,218 @@ function formatNum(n: number) {
             </div>
           </div>
           <p v-else class="text-muted text-center small py-4">No hay datos de OA para este período</p>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-4 compliance-card">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between mb-1">
+            <div>
+              <h5 class="card-title fs-6 fw-semibold mb-1">
+                <i class="bi bi-shield-check me-2" style="color:#22c55e"></i>Cumplimiento normativo
+              </h5>
+              <p class="text-muted small mb-0">
+                Índice OpenScope de alineación con el Plan S europeo y el art. 37 de la Ley de la Ciencia (LCI)
+              </p>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary compliance-info-btn" @click="showComplianceInfo = !showComplianceInfo">
+              <i class="bi" :class="showComplianceInfo ? 'bi-x-lg' : 'bi-question-circle'"></i>
+              {{ showComplianceInfo ? 'Cerrar' : '¿Qué es esto?' }}
+            </button>
+          </div>
+
+          <div v-if="showComplianceInfo" class="compliance-info-panel">
+            <div class="compliance-info-section">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="compliance-methodology-badge">Metodología OpenScope</span>
+              </div>
+              <p class="small mb-2">
+                Este índice es una <strong>herramienta de monitorización propia de OpenScope</strong>.
+                No es un estándar oficial del Plan S ni de la AEI, pero está <strong>alineado con sus principios</strong>.
+                La escala y ponderaciones son internas y están diseñadas para ofrecer una visión comparable
+                del grado de cumplimiento normativo de cada institución.
+              </p>
+            </div>
+
+            <div class="compliance-info-section">
+              <h6><i class="bi bi-info-circle-fill me-2" style="color:#3b82f6"></i>¿Qué es el Plan S?</h6>
+              <p class="small mb-2">
+                <strong>Plan S</strong> es una iniciativa europea impulsada en 2018 por la coalición <em>cOAlition S</em>
+                (formada por más de 30 organismos de financiación de investigación en Europa, incluyendo la <strong>AEI</strong> en España).
+                Su objetivo es que, desde 2021, <strong>toda publicación científica financiada con fondos públicos
+                debe ser inmediatamente accesible en abierto</strong>, sin períodos de embargo.
+              </p>
+              <p class="small mb-2">
+                En España, la alineación con el Plan S se refleja principalmente en el <strong>artículo 37 de la Ley de la Ciencia</strong>
+                (Ley 14/2011, modificada por la Ley 17/2022), que establece la <strong>obligación de depositar en abierto
+                la versión aceptada para publicación</strong> en un repositorio institucional o temático
+                <strong>de forma inmediata a la publicación</strong>, eliminando los periodos de embargo tradicionales.
+              </p>
+            </div>
+
+            <div class="compliance-info-section">
+              <h6><i class="bi bi-calculator me-2" style="color:#a855f7"></i>¿Por qué estas tres métricas?</h6>
+              <p class="small mb-2">
+                El Plan S y la normativa española exigen fundamentalmente dos cosas:
+              </p>
+              <ul class="small mb-2">
+                <li><strong>Que el artículo esté en abierto</strong> (preferiblemente en rutas sin restricciones como DIAMOND, GOLD o GREEN)</li>
+                <li><strong>Que esté depositado en un repositorio</strong> (para garantizar acceso permanente)</li>
+              </ul>
+              <p class="small mb-2">
+                Estas dos métricas capturan los requisitos legales. La tercera (OA amplio) ofrece una visión más completa
+                incluyendo rutas que, aunque no siempre cumplen Plan S al 100%, indican que el artículo es accesible.
+              </p>
+
+              <div class="compliance-metric-explanation">
+                <div class="compliance-metric-row">
+                  <span class="compliance-metric-weight" style="color:#22c55e">40%</span>
+                  <div>
+                    <strong class="small">OA fuerte</strong>
+                    <span class="text-muted small"> — Artículos en rutas OA plenas (DIAMOND + GOLD + GREEN).
+                    Son las rutas que cumplen Plan S sin restricciones. Tiene el mayor peso porque
+                    representa el cumplimiento directo del requisito de acceso inmediato.</span>
+                  </div>
+                </div>
+                <div class="compliance-metric-row">
+                  <span class="compliance-metric-weight" style="color:#3b82f6">30%</span>
+                  <div>
+                    <strong class="small">Depósito en repositorio</strong>
+                    <span class="text-muted small"> — % de artículos depositados en un repositorio institucional.
+                    Es lo que mide directamente el art. 37 LCI. Mantiene un peso alto porque
+                    el depósito es la obligación legal explícita en España.</span>
+                  </div>
+                </div>
+                <div class="compliance-metric-row">
+                  <span class="compliance-metric-weight" style="color:#f59e0b">30%</span>
+                  <div>
+                    <strong class="small">OA amplio</strong>
+                    <span class="text-muted small"> — % total de artículos accesibles (todo menos CLOSED).
+                    Incluye también HYBRID y BRONZE, que tienen limitaciones (pueden no cumplir
+                    Plan S completamente). Se incluye como visión global del acceso abierto.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="compliance-info-section">
+              <h6><i class="bi bi-award me-2" style="color:#f59e0b"></i>¿De dónde vienen las notas?</h6>
+              <p class="small mb-2">
+                La nota se asigna según el score global en una <strong>escala de 8 niveles</strong>,
+                inspirada en las calificaciones académicas europeas:
+              </p>
+              <div class="compliance-grade-scale">
+                <div class="compliance-grade-item" v-for="g in gradeScale" :key="g.grade">
+                  <span class="compliance-grade-badge" :style="{ background: g.color }">{{ g.grade }}</span>
+                  <span class="small text-muted">{{ g.label }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="compliance-info-section mb-0">
+              <h6><i class="bi bi-exclamation-triangle me-2" style="color:#ef4444"></i>Limitaciones de los datos</h6>
+              <p class="small mb-2">
+                Este índice se calcula a partir de <strong>datos abiertos</strong> (OpenAlex, repositorios institucionales, OpenAPC).
+                Existen factores que <strong>no se pueden capturar</strong> automáticamente:
+              </p>
+              <ul class="small mb-0">
+                <li><strong>Acuerdos transformativos</strong> institucionales que cubran total o parcialmente los APC</li>
+                <li><strong>Artículos correctamente depositados</strong> pero no detectados por el harvest OAI-PMH</li>
+                <li><strong>Publicaciones OA de facto</strong> que no están correctamente etiquetadas en las bases de datos</li>
+                <li><strong>Cobertura variable</strong> según la universidad (algunas tienen mejor indexación en OpenAlex que otras)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div v-if="complianceLoading" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Cargando...</span>
+            </div>
+          </div>
+
+          <div v-else-if="compliance && compliance.totalPublications > 0" class="compliance-grid">
+            <div class="compliance-gauge">
+              <div class="compliance-gauge-ring">
+                <svg viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="52" fill="none" :stroke="gradeColor + '22'" stroke-width="10"/>
+                  <circle cx="60" cy="60" r="52" fill="none" :stroke="gradeColor" stroke-width="10"
+                    :stroke-dasharray="(compliance.overallScore / 100 * 326.7) + ' ' + (326.7 - compliance.overallScore / 100 * 326.7)"
+                    stroke-linecap="round" style="transform:rotate(-90deg);transform-origin:center"/>
+                </svg>
+                <div class="compliance-gauge-inner">
+                  <span class="compliance-gauge-grade" :style="{ color: gradeColor }">{{ compliance.grade }}</span>
+                  <span class="compliance-gauge-label">{{ gradeLabel }}</span>
+                </div>
+              </div>
+              <div class="compliance-gauge-score text-center">
+                <span class="fs-4 fw-bold" :style="{ color: gradeColor }">{{ compliance.overallScore }}</span>
+                <span class="text-muted small"> / 100</span>
+              </div>
+            </div>
+
+            <div class="compliance-metrics">
+              <div class="compliance-metric">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="compliance-sem" :class="semaforoClass(compliance.strongOaPct)"></span>
+                    <small class="fw-semibold">OA fuerte</small>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted">{{ formatNum(compliance.strongOaCount) }} art.</small>
+                    <small class="fw-bold" :style="{ color: compliance.strongOaPct >= 70 ? '#22c55e' : compliance.strongOaPct >= 50 ? '#f59e0b' : '#ef4444' }">
+                      {{ compliance.strongOaPct }}%
+                    </small>
+                  </div>
+                </div>
+                <div class="progress" style="height:8px">
+                  <div class="progress-bar" :style="{ width: compliance.strongOaPct + '%', background: compliance.strongOaPct >= 70 ? '#22c55e' : compliance.strongOaPct >= 50 ? '#f59e0b' : '#ef4444' }"></div>
+                </div>
+                <small class="text-muted d-block mt-1" style="font-size:0.7rem">DIAMOND + GOLD + GREEN · Rutas OA planas</small>
+              </div>
+
+              <div class="compliance-metric">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="compliance-sem" :class="semaforoClass(compliance.repositoryPct)"></span>
+                    <small class="fw-semibold">Depósito en repositorio</small>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted">{{ formatNum(compliance.repositoryCount) }} art.</small>
+                    <small class="fw-bold" :style="{ color: compliance.repositoryPct >= 70 ? '#22c55e' : compliance.repositoryPct >= 50 ? '#f59e0b' : '#ef4444' }">
+                      {{ compliance.repositoryPct }}%
+                    </small>
+                  </div>
+                </div>
+                <div class="progress" style="height:8px">
+                  <div class="progress-bar" :style="{ width: compliance.repositoryPct + '%', background: compliance.repositoryPct >= 70 ? '#22c55e' : compliance.repositoryPct >= 50 ? '#f59e0b' : '#ef4444' }"></div>
+                </div>
+                <small class="text-muted d-block mt-1" style="font-size:0.7rem">Art. 37 LCI · Depósito obligatorio en repositorio</small>
+              </div>
+
+              <div class="compliance-metric">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="compliance-sem" :class="semaforoClass(compliance.broadOaPct)"></span>
+                    <small class="fw-semibold">OA amplio</small>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted">{{ formatNum(compliance.broadOaCount) }} art.</small>
+                    <small class="fw-bold" :style="{ color: compliance.broadOaPct >= 70 ? '#22c55e' : compliance.broadOaPct >= 50 ? '#f59e0b' : '#ef4444' }">
+                      {{ compliance.broadOaPct }}%
+                    </small>
+                  </div>
+                </div>
+                <div class="progress" style="height:8px">
+                  <div class="progress-bar" :style="{ width: compliance.broadOaPct + '%', background: compliance.broadOaPct >= 70 ? '#22c55e' : compliance.broadOaPct >= 50 ? '#f59e0b' : '#ef4444' }"></div>
+                </div>
+                <small class="text-muted d-block mt-1" style="font-size:0.7rem">Todo acceso abierto (incluye HYBRID, BRONZE)</small>
+              </div>
+            </div>
+          </div>
+
+          <p v-else-if="compliance && compliance.totalPublications === 0" class="text-muted text-center small py-4 mb-0">
+            No hay datos de publicaciones para evaluar el cumplimiento.
+          </p>
         </div>
       </div>
 
@@ -672,5 +936,176 @@ function formatNum(n: number) {
   align-items: center;
   justify-content: center;
   min-height: 320px;
+}
+
+.compliance-card {
+  border-left: 3px solid #22c55e;
+}
+
+.compliance-info-btn {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+}
+
+.compliance-info-panel {
+  background: var(--bs-tertiary-bg, #f8f9fa);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-md, 1rem);
+  margin: var(--space-md, 1rem) 0;
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+.compliance-info-section {
+  margin-bottom: var(--space-md, 1rem);
+  padding-bottom: var(--space-md, 1rem);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.compliance-info-section h6 {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.compliance-info-section p {
+  line-height: 1.6;
+}
+
+.compliance-metric-explanation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.compliance-metric-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.compliance-metric-weight {
+  font-weight: 800;
+  font-size: 0.9rem;
+  min-width: 36px;
+  flex-shrink: 0;
+}
+
+.compliance-grade-scale {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.compliance-grade-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.compliance-grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 24px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 800;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.compliance-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: var(--space-xl, 1.5rem);
+  margin-top: var(--space-md, 1rem);
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .compliance-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compliance-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs, 0.5rem);
+}
+
+.compliance-gauge-ring {
+  position: relative;
+  width: 140px;
+  height: 140px;
+}
+
+.compliance-gauge-ring svg {
+  width: 100%;
+  height: 100%;
+}
+
+.compliance-gauge-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.compliance-gauge-grade {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.compliance-gauge-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.compliance-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md, 1rem);
+}
+
+.compliance-sem {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sem-green {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+}
+
+.sem-yellow {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+}
+
+.sem-red {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+.compliance-methodology-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 </style>
