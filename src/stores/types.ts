@@ -135,3 +135,30 @@ export interface RegionalStats {
   complianceScore: number
   complianceGrade: string
 }
+
+export interface HistoricalYear {
+  year: number
+  totalPublications: number
+  diamondCount: number
+  goldCount: number
+  greenCount: number
+  hybridCount: number
+  bronzeCount: number
+  closedCount: number
+  repositoryCount: number
+  oaPercentage: number
+  strongOaPct: number
+  repositoryPct: number
+  broadOaPct: number
+  complianceScore: number
+  complianceGrade: string
+  totalApcCost: number
+  articlesWithApc: number
+  averageApc: number
+}
+
+export interface HistoricalData {
+  institutionId: string
+  institutionName: string
+  yearlyData: HistoricalYear[]
+}

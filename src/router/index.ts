@@ -29,6 +29,11 @@ const router = createRouter({
       component: () => import('@/views/RegionalView.vue')
     },
     {
+      path: '/historical',
+      name: 'historical',
+      component: () => import('@/views/HistoricalAnalysisView.vue')
+    },
+    {
       path: '/admin',
       name: 'admin',
       component: () => import('@/views/AdminView.vue')

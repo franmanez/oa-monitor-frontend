@@ -22,9 +22,9 @@ openscope/
 |---------|-------------|
 | `model/` | Entidades JPA (`Institution`, `Publication`, `HarvestJob`, `JournalApcPrice`) + enums + `UuidConverter` |
 | `repository/` | Interfaces Spring Data JPA (`InstitutionRepository`, `PublicationRepository`, `HarvestJobRepository`, `JournalApcPriceRepository`) |
-| `service/` | Lógica de negocio (`InstitutionService`, `OpenAlexHarvestService`, `OaiPmhHarvestService`, `ApcCalculationService`, `ApcImportService`) |
-| `controller/` | Controladores REST (`InstitutionController`, `HarvestController`, `AdminController`) |
-| `dto/` | Records de transferencia (`InstitutionDto`, `InstitutionSummaryDto`, `OaBreakdownDto`, `PublicationDto`, etc.) |
+| `service/` | Lógica de negocio (`InstitutionService`, `OpenAlexHarvestService`, `OaiPmhHarvestService`, `ApcCalculationService`, `ApcImportService`, `HistoricalService`) |
+| `controller/` | Controladores REST (`InstitutionController`, `HarvestController`, `AdminController`, `HistoricalController`) |
+| `dto/` | Records de transferencia (`InstitutionDto`, `InstitutionSummaryDto`, `OaBreakdownDto`, `PublicationDto`, `HistoricalDataDto`, `HistoricalYearDto`, etc.) |
 | `harvest/` | Clientes HTTP: `OpenAlexClient` (OpenAlex API), `OaiPmhClient` (OAI-PMH protocol) |
 | `seed/` | CommandLineRunner para seed REBIUN (`RebiunSeed`) |
 | `config/` | Configuración Spring (`WebConfig`) |
@@ -68,8 +68,8 @@ openscope/
 |---------|-------------|
 | `router/` | Configuración de rutas (`index.ts`) |
 | `stores/` | Stores Pinia (`institutions.ts`, `institutionDetail.ts`) |
-| `views/` | Páginas (`InstitutionsView.vue`, `InstitutionDetailView.vue`, `RankingView.vue`) |
-| `components/charts/` | Componentes de gráficas (Chart.js): `OaPieChart`, `OaEvolutionChart`, `JournalApcBarChart`, `TopJournalsChart`, `RankingScatterChart` |
+| `views/` | Páginas (`InstitutionsView.vue`, `InstitutionDetailView.vue`, `RankingView.vue`, `HistoricalAnalysisView.vue`) |
+| `components/charts/` | Componentes de gráficas (Chart.js): `OaPieChart`, `OaEvolutionChart`, `OaRoutesStackedBarChart`, `ApcEvolutionChart`, `ApcArticlesChart`, `ComplianceEvolutionChart`, `PublicationsVolumeChart`, `RadarCompareChart`, `JournalApcBarChart`, `TopJournalsChart`, `RankingScatterChart` |
 | `assets/` | Recursos estáticos |
 
 **Notas técnicas:**
@@ -126,6 +126,9 @@ La API estará disponible en `http://localhost:8080`. Endpoints principales:
 | GET | `/api/institutions/stats/scatter?year=` |
 | GET | `/api/institutions/{uuid}/journals/apc?year=` |
 | GET | `/api/institutions/{uuid}/journals/top?year=&limit=10` |
+| GET | `/api/institutions/{uuid}/historical` |
+| GET | `/api/institutions/{uuid}/historical/years` |
+| GET | `/api/institutions/{uuid}/historical/journals/apc?year=` |
 | POST | `/api/harvest/trigger/{uuid}?year=` |
 | POST | `/api/harvest/trigger-oai/{uuid}?year=` |
 | GET | `/api/harvest/jobs` |
@@ -217,4 +220,5 @@ npm run typecheck          # Verificación de tipos
 - **DIAMOND excluido de APC**: por definición no tienen cargo para el autor.
 - **ApcYearBreakdown incluye publicationsWithPrice**: evita bug de >100% al filtrar por año.
 - **Comparación por año fijo**: el ranking requiere año obligatorio; detalle de institución muestra por defecto el año más reciente. Evita comparaciones desiguales entre instituciones con distinta cobertura temporal.
-- **Chart.js + vue-chartjs**: librería ligera (MIT) para gráficas: doughnut (distribución OA), stacked bar (evolución), horizontal bar (revistas), scatter (ranking).
+- **Chart.js + vue-chartjs**: librería ligera (MIT) para gráficas: doughnut (distribución OA), stacked bar (evolución), horizontal bar (revistas), scatter (ranking), line (evolución temporal), bar (rutas apiladas 100%), radar (comparativa multidimensional).
+- **Análisis histórico (GET /historical)**: página de análisis temporal por universidad. Endpoint `GET /api/institutions/{uuid}/historical` devuelve datos agregados por año: counts de cada ruta OA, %OA amplio, %OA fuerte (DIAMOND+GOLD+GREEN), %depósito repositorio, score de compliance (Plan S + art. 37 LCI) con nota, coste APC total, nº artículos con APC y APC medio. Servicio separado `HistoricalService` + `HistoricalController` para mantener la lógica desacoplada. Usa 3 queries JPA eficientes: `aggregateHistoricalByInstitution` (OA por año), `aggregateApcHistoricalByInstitution` (APC por año), `journalApcByInstitutionAndYear` (top revistas por año). Frontend: store Pinia `historical.ts`, 7 componentes de gráficas (OaEvolutionChart, OaRoutesStackedBarChart, ApcEvolutionChart, ApcArticlesChart, ComplianceEvolutionChart, PublicationsVolumeChart, RadarCompareChart), heatmap de métricas × años, tabla detalle anual, top 5 revistas por año. Funciona para cualquier universidad aunque solo tenga un año evaluado.

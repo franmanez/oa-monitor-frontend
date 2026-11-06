@@ -43,6 +43,7 @@ const navItems = [
   { path: '/institutions', icon: 'bi-building', label: 'Universidades' },
   { path: '/ranking', icon: 'bi-trophy', label: 'Ranking' },
   { path: '/regional', icon: 'bi-geo-alt', label: 'Análisis Regional' },
+  { path: '/historical', icon: 'bi-graph-up-arrow', label: 'Análisis Histórico' },
   { path: '/admin', icon: 'bi-gear', label: 'Administración' },
   { path: '/informacion', icon: 'bi-info-circle', label: 'Información' },
 ]
