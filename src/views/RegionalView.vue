@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import type { RegionalStats } from '@/stores/types'
+import { OA_COLORS } from '@/utils/oaRoutes'
 
 const regionalData = ref<RegionalStats[]>([])
 const loading = ref(false)
@@ -42,24 +43,17 @@ function formatNum(n: number) {
   return new Intl.NumberFormat('es-ES').format(n)
 }
 
-function gradeColor(score: number): string {
-  if (score >= 80) return '#22c55e'
-  if (score >= 60) return '#3b82f6'
-  if (score >= 40) return '#f59e0b'
-  return '#ef4444'
-}
-
 function toggleExpand(community: string) {
   expandedCommunity.value = expandedCommunity.value === community ? null : community
 }
 
 const oaColors: Record<string, string> = {
-  DIAMOND: '#a855f7',
-  GOLD: '#f59e0b',
-  GREEN: '#22c55e',
-  HYBRID: '#3b82f6',
-  BRONZE: '#d97706',
-  CLOSED: '#ef4444'
+  DIAMOND: OA_COLORS.DIAMOND,
+  GOLD: OA_COLORS.GOLD,
+  GREEN: OA_COLORS.GREEN,
+  HYBRID: OA_COLORS.HYBRID,
+  BRONZE: OA_COLORS.BRONZE,
+  CLOSED: OA_COLORS.CLOSED
 }
 </script>
 
@@ -68,7 +62,7 @@ const oaColors: Record<string, string> = {
     <div class="page-header">
       <div>
         <h1 class="page-title">Análisis Regional</h1>
-        <p class="page-subtitle">Compromiso con la Ciencia Abierta por Comunidad Autónoma</p>
+        <p class="page-subtitle">Panorama de Ciencia Abierta por Comunidad Autónoma</p>
       </div>
       <div class="page-actions">
         <div class="year-selector">
@@ -111,8 +105,8 @@ const oaColors: Record<string, string> = {
             <strong class="small">1. Métricas relativas (%), no absolutas</strong>
             <p class="small text-muted mb-0">
               Comparar el número total de artículos de Madrid o Cataluña frente a comunidades uniprovinciales
-              no aporta información útil sobre el esfuerzo de Ciencia Abierta. La clave está en los <strong>porcentajes
-              de cumplimiento</strong>. Un centro pequeño puede tener un 90% de OA aunque publique 200 artículos,
+              no aporta información útil sobre el esfuerzo de Ciencia Abierta. La clave está en los <strong>porcentajes</strong>.
+              Un centro pequeño puede tener un 90% de OA aunque publique 200 artículos,
               mientras que una gran universidad puede publicar 10.000 pero retener un 30% en acceso cerrado.
             </p>
           </div>
@@ -232,7 +226,6 @@ const oaColors: Record<string, string> = {
                 <th class="text-center">OA fuerte</th>
                 <th class="text-center d-none d-md-table-cell">Depósito repo</th>
                 <th class="text-center">% OA amplio</th>
-                <th class="text-center" style="width:60px">Nota</th>
               </tr>
             </thead>
             <tbody>
@@ -265,14 +258,9 @@ const oaColors: Record<string, string> = {
                       <span class="oa-pct">{{ item.oaPercentage }}%</span>
                     </div>
                   </td>
-                  <td class="text-center">
-                    <span class="regional-grade" :style="{ background: gradeColor(item.complianceScore), color: '#fff' }">
-                      {{ item.complianceGrade }}
-                    </span>
-                  </td>
                 </tr>
                 <tr v-if="expandedCommunity === item.community" class="regional-detail-row">
-                  <td colspan="7">
+                  <td colspan="6">
                     <div class="regional-detail-content">
                       <p class="small text-muted mb-1">
                         <strong>{{ item.community }}</strong> · {{ item.universityCount }} universidad{{ item.universityCount > 1 ? 'es' : '' }} ·
@@ -502,17 +490,6 @@ const oaColors: Record<string, string> = {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text-secondary);
-}
-
-.regional-grade {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 28px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 800;
 }
 
 .regional-detail-row td {

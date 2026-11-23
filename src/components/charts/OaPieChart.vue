@@ -3,21 +3,15 @@ import { computed } from 'vue'
 import { Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
+import { OA_COLORS, oaTextColor } from '@/utils/oaRoutes'
 
-ChartJS.register(ArcElement, Tooltip, ChartDataLabels)
+// ChartDataLabels se pasa SOLO a este gráfico (no ChartJS.register global),
+// así evita inyectar números ilegibles en el resto de gráficas de la app.
+ChartJS.register(ArcElement, Tooltip)
 
 const props = defineProps<{
   oaStatusCounts: Record<string, number>
 }>()
-
-const colors: Record<string, string> = {
-  DIAMOND: '#a855f7',
-  GOLD: '#f59e0b',
-  GREEN: '#22c55e',
-  HYBRID: '#3b82f6',
-  BRONZE: '#d97706',
-  CLOSED: '#ef4444'
-}
 
 const labels: Record<string, string> = {
   DIAMOND: 'Diamante',
@@ -29,7 +23,7 @@ const labels: Record<string, string> = {
 }
 
 const entries = computed(() => {
-  return Object.entries(colors)
+  return Object.entries(OA_COLORS)
     .map(([key, color]) => ({
       key,
       label: labels[key] || key,
@@ -71,7 +65,7 @@ const chartOptions = computed(() => ({
       }
     },
     datalabels: {
-      color: '#fff',
+      color: (ctx: any) => oaTextColor(entries.value[ctx.dataIndex]?.key),
       font: { weight: 'bold' as const, size: 12 },
       formatter: (_value: number, ctx: any) => {
         const total = ctx.dataset.data.reduce((a: number, b: number) => a + b, 0)
@@ -90,7 +84,7 @@ const chartOptions = computed(() => ({
 
 <template>
   <div class="position-relative" style="height:300px">
-    <Doughnut v-if="entries.length > 0" :data="chartData" :options="chartOptions" />
+    <Doughnut v-if="entries.length > 0" :data="chartData" :options="chartOptions" :plugins="[ChartDataLabels]" />
     <div v-else class="d-flex align-items-center justify-content-center h-100 text-muted">
       <small>Sin datos para este período</small>
     </div>

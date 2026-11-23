@@ -11,6 +11,7 @@ OpenScope es una herramienta que audita el estado de **Acceso Abierto (OA)** de 
 - ¿Qué porcentaje de artículos de la UPC son de acceso abierto?
 - ¿Cuánto cuesta en APC (Article Processing Charges) la publicación OA de esta universidad?
 - ¿Qué revistas concentran más gasto en APC?
+- ¿Qué editoriales concentran más gasto en APC y en qué artículos concretos se va ese dinero?
 - ¿Cómo se compara esta universidad con el resto del sistema universitario español?
 
 ---
@@ -125,7 +126,7 @@ POST /api/institutions/{uuid}/apc/calculate
 
 Una vez completados los pasos anteriores, los datos están disponibles en:
 
-- **Detalle de institución** (`/institution/{uuid}`): resumen OA, desglose por estado, APC estimado.
+- **Detalle de institución** (`/institution/{uuid}`): pestañas **Resumen** (resumen OA, desglose por estado, APC estimado), **APC por revista** (treemap top 100 con drill-down a lista de artículos), **APC por editorial** (treemap con drill-down a artículos) y **Listado de artículos** (tabla completa de artículos de revista con filtros de estado y búsqueda, paginada).
 - **Ranking** (`/ranking`): comparativa entre universidades por año.
 - **CSV** (`/api/institutions/{uuid}/export`): descarga de todas las publicaciones con todos los campos.
 
@@ -178,7 +179,7 @@ El fichero tiene **18 columnas**. A continuación se muestran todas, marcando la
 - **`period`**: para agrupar por año y usar el precio histórico correcto de cada ejercicio.
 - **`euro`**: el precio real pagado, ya convertido a euros.
 - **`journal_full_title`**: para mostrar el nombre de la revista en informes y gráficas.
-- **`publisher`**: para mostrar la editorial (informativo, no se usa en cálculos).
+- **`publisher`**: la editorial de cada revista. Se usa para agregar el gasto APC por editorial en la pestaña **"APC por editorial"** (treemap).
 - **`issn`**: es la **clave principal** de cruce. OpenScope busca el ISSN de cada artículo en el dataset de OpenAPC para asignarle un precio.
 
 No se usan los demás campos porque:
@@ -357,81 +358,81 @@ REBIUN (Red de Bibliotecas de las Universidades Españolas) agrupa a 76 universi
 
 ---
 
-## Índice de Cumplimiento Normativo
+## Gasto en APC por editorial (Treemap)
 
-### ¿Qué mide?
+### ¿Qué muestra?
 
-El **Índice de Cumplimiento Normativo** evalúa el grado de alineación de cada universidad con:
+La pestaña **"APC por editorial"** del detalle de universidad representa el gasto total en APC del período seleccionado como un **mosaico de árboles (treemap)**, inspirado en la visualización de [OpenAPC](https://treemaps.openapc.net). Cada celda es una **editorial** (Elsevier, Springer Nature, MDPI...) y:
 
-- **Plan S**: iniciativa europea de cOAlition S (2018) que exige acceso abierto inmediato a publicaciones financiadas con fondos públicos, sin períodos de embargo.
-- **Artículo 37 de la Ley de la Ciencia** (Ley 14/2011, modificada por Ley 17/2022): obligación de depositar en abierto la versión aceptada en repositorio institucional de forma inmediata.
+- El **tamaño** de la celda es proporcional al gasto total en APC de esa editorial.
+- La **etiqueta** muestra el importe y el nombre de la editorial.
+- Al **pasar el ratón** por una celda (especialmente las pequeñas), el resto se atenúa y la celda destacada muestra su información completa en un tooltip: gasto, nº de artículos, media por artículo y % del total.
+- Al **hacer click** en una editorial se abre debajo un **segundo treemap con los artículos** de esa editorial: cada celda es un artículo con su DOI y APC, en tonos del color de la editorial. Click en un artículo → abre su DOI en doi.org.
 
-### Metodología
+### ¿De dónde sale la editorial?
 
-> **Nota importante:** Este índice es una herramienta de monitorización **propia de OpenScope**. No es un estándar oficial del Plan S ni de la AEI, pero está alineado con sus principios.
+De la columna `publisher` de la tabla `journal_apc_price` (dataset OpenAPC). Cada publicación se cruza por ISSN con la fila de precios más cercana en el tiempo (año ≤ año del artículo), igual que en el cálculo del APC. Los artículos sin editorial detectada se agrupan en "Sin especificar".
 
-El score (0-100) se calcula como media ponderada de tres métricas:
+### Datos disponibles
 
-| Peso | Métrica | Estados OA incluidos | Justificación |
-|------|---------|---------------------|---------------|
-| **40%** | OA fuerte | DIAMOND + GOLD + GREEN | Cumple Plan S sin restricciones. Mayor peso porque representa acceso inmediato. |
-| **30%** | Depósito en repositorio | Artículos con `repositoryUrl` no nulo | Mide directamente el art. 37 LCI (obligación legal explícita). |
-| **30%** | OA amplio | Todo menos CLOSED | Visión global del acceso abierto. Incluye HYBRID y BRONZE que tienen limitaciones. |
+`GET /api/institutions/{uuid}/publishers?year=` devuelve por editorial:
 
-### Escala de notas
+| Campo | Descripción |
+|-------|-------------|
+| `publisher` | Nombre de la editorial |
+| `totalApc` | Suma del APC estimado de sus artículos (€) |
+| `articleCount` | Nº de artículos |
+| `averageApc` | Media por artículo (€) |
+| `stdDev` | Desviación estándar muestral (€), N/A si hay 1 solo artículo |
+| `percentage` | % del gasto total del período |
 
-| Nota | Score | Significado |
-|------|-------|-------------|
-| A+ | ≥ 90 | Excelente |
-| A | ≥ 80 | |
-| B+ | ≥ 70 | Notable |
-| B | ≥ 60 | |
-| C+ | ≥ 50 | Aceptable |
-| C | ≥ 40 | |
-| D | ≥ 30 | Insuficiente |
-| F | < 30 | |
+`GET /api/institutions/{uuid}/publishers/articles?year=&publisher=` devuelve los artículos de esa editorial con DOI, título, revista, ISSN, APC estimado y ruta OA.
 
-### ¿Por qué estas tres métricas?
+### Tablas resumen
 
-El Plan S y la normativa española exigen fundamentalmente dos cosas:
+Bajo cada treemap se muestra una tabla estilo OpenAPC con las mismas cifras (Suma / Nº artículos / Media / Desviación / %) y una fila de Total. Solo cuentan los artículos con APC estimado (GOLD e HYBRID con precio en OpenAPC); el resto de rutas OA no genera gasto APC. La tabla muestra las 10 primeras filas con un enlace "Ver las N editoriales restantes" (estilo "view small values" de OpenAPC) que despliega el resto.
 
-1. **Que el artículo esté en abierto** (preferiblemente en rutas sin restricciones como DIAMOND, GOLD o GREEN)
-2. **Que esté depositado en un repositorio** (para garantizar acceso permanente)
+### Gráfica Oro vs Híbrido por editorial
 
-Las dos primeras métricas capturan los requisitos legales. La tercera (OA amplio) ofrece una visión más completa incluyendo rutas que, aunque no siempre cumplen Plan S al 100%, indican que el artículo es accesible.
+Bajo la tabla de editoriales se muestra una **gráfica de columnas apiladas** con el top 12 de editoriales por nº de artículos con APC: cada columna descompone los artículos con APC de esa editorial entre **Oro** (publicados en revista de acceso abierto) e **Híbrido** (artículo liberado pagando APC en una revista de suscripción), con los colores canónicos de OpenAIRE y toggle Valores/Porcentaje (en porcentaje, cada editorial suma 100 % y se compara la composición relativa). Permite ver de un vistazo qué editoriales son de "publishing OA puro" (casi todo Oro) y cuáles viven del modelo híbrido. El endpoint `GET /api/institutions/{uuid}/publishers?year=` incluye para cada editorial los counts `goldCount` e `hybridCount`. Nota: no se desglosan el resto de rutas OA (Verde, Diamante, Bronce, Cerrado) porque el ranking de editoriales solo incluye artículos con APC estimado, donde por definición solo existen Oro e Híbrido.
 
-### Limitaciones
+### Colores de rutas OA
 
-Este índice se calcula a partir de datos abiertos. Existen factores que **no se pueden capturar** automáticamente:
-
-- **Acuerdos transformativos** institucionales que cubran total o parcialmente los APC
-- **Artículos correctamente depositados** pero no detectados por el harvest OAI-PMH
-- **Publicaciones OA de facto** que no están correctamente etiquetadas en las bases de datos
-- **Cobertura variable** según la universidad (algunas tienen mejor indexación en OpenAlex que otras)
-
-### Visualización en el frontend
-
-En el detalle de institución, el índice se muestra como:
-
-- **Gauge circular SVG** con la nota (A+/A/B+/...) coloreada según nivel
-- **3 progress bars** con semáforo (verde ≥70%, amarillo ≥50%, rojo <50%)
-- **Panel expandible** "¿Qué es esto?" con explicación completa de la metodología
+Toda la app usa la paleta canónica de OpenAIRE (centralizada en `src/utils/oaRoutes.ts`): Verde `#447032`, Oro `#f1c40f`, Híbrido `#f39c12`, Diamante `#9c27b0`, Bronce `#a0522d`, Cerrado `#9e9e9e` (gris neutro, como "Other Journals" en OpenAIRE, sin connotación negativa).
 
 ---
+
+## Gasto en APC por revista (Treemap)
+
+### ¿Qué muestra?
+
+En la pestaña **APC por revista** del detalle de cada universidad, el treemap "Gasto en APC por revista" descompone el coste APC entre las **100 primeras revistas por gasto** (ranking; solo artículos con APC estimado, GOLD e HYBRID). El área de cada celda es el gasto total en esa revista y el color es un azul cuya intensidad crece con el gasto. Es el mismo patrón de interacción que el treemap por editorial. El límite de 100 mantiene el mapa legible y la página rápida incluso en universidades con miles de revistas distintas.
+
+### Drill-down a artículos
+
+Al hacer click en una revista (celda del treemap o fila de la tabla) se despliega debajo la **lista de sus artículos con APC**: DOI (enlace que abre `https://doi.org/{DOI}`), título, APC pagado y % del gasto de la revista, con paginación "Ver los N artículos restantes" y fila de Total. No se representa como segundo treemap (a diferencia del panel de editoriales): dentro de una misma revista todos los artículos comparten el mismo APC —es la mediana del precio de la revista—, así que todas las celdas tendrían idéntico tamaño y el mapa no añadiría información. El botón "Cerrar" vuelve a la vista de revistas.
+
+### Tabla resumen
+
+Bajo el treemap: Revista / Suma / Nº artículos / Media / %, con fila de Total y paginación "Ver las N revistas restantes". La media y el % se calculan en el navegador a partir del coste y el número de artículos; a diferencia del panel de editoriales no se muestra desviación estándar (los datos agregados por revista no la incluyen).
+
+### Datos disponibles
+
+`GET /api/institutions/{uuid}/journals/apc?year=&limit=` devuelve por revista nombre, ISSN, nº de artículos y coste APC total, ordenados por gasto de mayor a menor (el panel pide `limit=100`). `GET /api/institutions/{uuid}/journals/articles?year=&journal=` devuelve los artículos con APC de una revista (DOI, título, revista, ISSN, APC y ruta OA resuelta), con el mismo formato que los artículos por editorial. Las revistas sin nombre se agrupan como "Sin nombre".
 
 ## Análisis Regional por Comunidades Autónomas
 
 ### ¿Qué analiza?
 
-La vista de Análisis Regional agrega los datos de todas las universidades de una misma comunidad autónoma para evaluar el compromiso con la Ciencia Abierta a nivel territorial. Permite responder preguntas como:
+La vista de Análisis Regional agrega los datos de todas las universidades de una misma comunidad autónoma para mostrar el panorama de la Ciencia Abierta a nivel territorial. Permite responder preguntas como:
 
-- ¿Cómo de comprometida está mi comunidad con el Plan S y el art. 37 LCI?
+- ¿Cómo se compara el acceso abierto de mi comunidad con las demás?
 - ¿Funcionan las políticas públicas locales de I+D y repositorios?
 - ¿Hay diferencias en la composición de rutas OA entre comunidades?
 
 ### Principios de lectura (para evitar comparaciones sesgadas)
 
-1. **Métricas relativas (%), no absolutas**: comparar el volumen total de artículos de Madrid o Cataluña frente a comunidades uniprovinciales no aporta información útil. La clave está en los porcentajes de cumplimiento.
+1. **Métricas relativas (%), no absolutas**: comparar el volumen total de artículos de Madrid o Cataluña frente a comunidades uniprovinciales no aporta información útil. La clave está en los porcentajes.
 
 2. **Composición del tejido científico**: las rutas de OA varían según las áreas del conocimiento (biomedicina → Gold/Hybrid; humanidades → Diamond/Green). Comunidades con orientación biomédica tendrán un perfil distinto a las de mayor peso en ciencias sociales, sin que ello implique peor gestión.
 
@@ -450,15 +451,13 @@ El endpoint `GET /api/institutions/stats/regional?year=` devuelve por cada comun
 | `strongOaPct` | %OA fuerte (DIAMOND+GOLD+GREEN) |
 | `repositoryPct` | %depósito en repositorio |
 | `diamondPct`, `goldPct`, `greenPct`, `hybridPct`, `bronzePct`, `closedPct` | %por cada ruta individual |
-| `complianceScore` | Score de cumplimiento Plan S (0-100) |
-| `complianceGrade` | Nota (A+ a F) |
 
 ### Visualización en el frontend
 
 La vista "Análisis Regional" (`/regional`) incluye:
 
 - **Barras apiladas**: una barra por comunidad, segmentada por ruta OA. Ordenadas por %OA (no por volumen).
-- **Tabla de métricas**: comunidad, nº universidades, publicaciones (contexto), %OA fuerte, %depósito, %OA amplio, nota compliance.
+- **Tabla de métricas**: comunidad, nº universidades, publicaciones (contexto), %OA fuerte, %depósito, %OA amplio.
 - **Panel contextual expandible**: explica los 3 principios de lectura para interpretar correctamente los datos.
 - **Detalle expandible**: al hacer click en una comunidad, se muestra la distribución completa por ruta OA.
 
@@ -472,7 +471,6 @@ La vista de **Análisis Histórico** (`/historical`) permite visualizar la evolu
 
 - ¿Cómo ha evolucionado el porcentaje de acceso abierto de mi universidad en los últimos años?
 - ¿Han subido o bajado los costes APC?
-- ¿Ha mejorado el cumplimiento normativo (Plan S / art. 37 LCI) con el tiempo?
 - ¿Qué rutas OA han ganado o perdido peso relativo?
 - ¿Cuáles son las revistas más caras en cada año?
 
@@ -488,12 +486,9 @@ El endpoint `GET /api/institutions/{uuid}/historical` devuelve, **para cada año
 | `totalPublications` | Total de artículos de revista |
 | `diamondCount`, `goldCount`, `greenCount`, `hybridCount`, `bronzeCount`, `closedCount` | Count por cada ruta OA |
 | `repositoryCount` | Artículos en repositorio institucional |
-| `oaPercentage` | %OA amplio (todo menos CLOSED) |
 | `strongOaPct` | %OA fuerte (DIAMOND+GOLD+GREEN) |
 | `repositoryPct` | %depósito en repositorio |
 | `broadOaPct` | %OA amplio |
-| `complianceScore` | Score de cumplimiento (0-100) |
-| `complianceGrade` | Nota (A+ a F) |
 | `totalApcCost` | Coste APC total estimado del año |
 | `articlesWithApc` | Nº de artículos GOLD+HYBRID con precio |
 | `averageApc` | APC medio por artículo (€) |
@@ -503,45 +498,33 @@ El endpoint `GET /api/institutions/{uuid}/historical` devuelve, **para cada año
 La vista incluye las siguientes secciones:
 
 #### 1. KPIs resumen
-Cuatro tarjetas con métricas globales del período seleccionado:
+Tres tarjetas con métricas globales del período seleccionado:
 - **Total artículos** acumulados
 - **Media OA amplio** (%) promedio
 - **Coste APC acumulado** (suma de todos los años)
-- **Cumplimiento medio** (score promedio + última nota)
 
-#### 2. Evolución del Acceso Abierto (líneas con área)
-Tres líneas que muestran la evolución temporal de:
-- %OA amplio (todo menos CLOSED)
-- %OA fuerte (DIAMOND+GOLD+GREEN)
-- %Depósito en repositorio
+#### 2. Publicaciones por Año y Ruta de Acceso Abierto (doble columna apilada)
+Por cada año se muestran **dos columnas**: una con las rutas **abiertas sin coste de publicación** (Verde + Diamante) y otra con los artículos **pagados con APC (Oro + Híbrido) o sin apertura garantizada** (Bronce —gratuito para leer en el editor pero sin licencia OA y reversible— y Cerrado). Los colores y la leyenda siguen siendo los de cada ruta OA individual (paleta OpenAIRE), de modo que cada columna se subdivide internamente por ruta. Toggle **Valores / Porcentaje**: en valores el eje Y cuenta artículos; en porcentaje cada segmento se expresa sobre el total del año (las dos columnas de un año suman 100 %). El tooltip muestra el nº de artículos y el % de cada segmento, y un footer con el desglose (abierto sin APC / con APC / sin apertura garantizada / total del año).
 
-#### 3. Rutas de Acceso Abierto por Año (barras apiladas 100%)
-Barras apiladas donde cada segmento representa el porcentaje de una ruta OA (DIAMOND, GOLD, GREEN, HYBRID, BRONZE, CLOSED). Permite ver cómo cambia la composición de rutas año a año.
-
-#### 4. Evolución de Costes APC (líneas doble eje)
+#### 3. Evolución de Costes APC (líneas doble eje)
 Gráfica con dos ejes Y:
 - **Eje izquierdo**: coste APC total estimado (suma anual)
 - **Eje derecho**: APC medio por artículo
 
-#### 5. Artículos con APC (barras)
+#### 4. Artículos con APC (barras)
 Número de artículos GOLD+HYBRID con precio estimado por año.
 
-#### 6. Evolución del Cumplimiento Normativo (línea)
-Score de cumplimiento (0-100) por año, con puntos coloreados según la nota obtenida.
+#### 5. Mapa de Calor (heatmap)
+Matriz años × métricas con celdas coloreadas (verde ≥70%, verde claro ≥50%, amarillo ≥30%, naranja ≥15%, rojo <15%). Permite detectar de un vistazo qué años y métricas tienen mejor o peor cobertura.
 
-#### 7. Volumen de Publicaciones (área)
-Total de artículos de revista por año.
+#### 6. Tabla de detalle anual
+Tabla con todos los campos por año: artículos, %OA, counts por ruta, repositorio y coste APC. Incluye códigos visuales para leerse de un vistazo:
+- **Composición OA**: mini barra apilada por año con la proporción de cada ruta OA (colores oficiales de ruta; el tooltip muestra el número y porcentaje de cada segmento). Se oculta en pantallas pequeñas.
+- **% OA**: la celda se colorea según el nivel (verde suave ≥70 %, ámbar suave 50–69 %, rojo suave <50 %) y muestra una barra de progreso bajo el porcentaje.
+- **Repositorio**: barra de progreso en verde con el número de artículos depositados y su porcentaje.
+- **Columnas por ruta** (DIAMOND, GOLD, GREEN, HYBRID, CLOSED): la cabecera va pintada en el color oficial de la ruta (texto oscuro sobre la cabecera dorada de GOLD para mantener el contraste) y las celdas de la columna usan el mismo color en tono suave, de forma que cada ruta se identifica de un vistazo vertical.
 
-#### 8. Comparativa Multidimensional (radar chart)
-Radar chart que superpone todos los años seleccionados, comparando 5 dimensiones: %OA amplio, %OA fuerte, %Repositorio, %Cumplimiento, y publicaciones (normalizado). Solo visible cuando hay 2+ años seleccionados.
-
-#### 9. Mapa de Calor (heatmap)
-Matriz años × métricas con celdas coloreadas (verde ≥70%, verde claro ≥50%, amarillo ≥30%, naranja ≥15%, rojo <15%). Permite detectar de un vistazo qué años y métricas tienen mejor o peor rendimiento.
-
-#### 10. Tabla de detalle anual
-Tabla con todos los campos por año: artículos, %OA, counts por ruta, repositorio, coste APC, score y nota compliance.
-
-#### 11. Top 5 revistas por coste APC en cada año
+#### 7. Top 5 revistas por coste APC en cada año
 Panel con las 5 revistas más caras por APC de cada año seleccionado, mostrando nombre, nº de artículos y coste total.
 
 ### Interactividad

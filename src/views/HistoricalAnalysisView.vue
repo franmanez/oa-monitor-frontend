@@ -4,13 +4,12 @@ import { useRouter } from 'vue-router'
 import { useHistoricalStore } from '@/stores/historical'
 import type { InstitutionPageResponse } from '@/stores/types'
 import type { JournalApcItem } from '@/stores/types'
-import OaEvolutionChart from '@/components/charts/OaEvolutionChart.vue'
-import OaRoutesStackedBarChart from '@/components/charts/OaRoutesStackedBarChart.vue'
+import OaRoutesColumnChart from '@/components/charts/OaRoutesColumnChart.vue'
 import ApcEvolutionChart from '@/components/charts/ApcEvolutionChart.vue'
 import ApcArticlesChart from '@/components/charts/ApcArticlesChart.vue'
-import ComplianceEvolutionChart from '@/components/charts/ComplianceEvolutionChart.vue'
-import PublicationsVolumeChart from '@/components/charts/PublicationsVolumeChart.vue'
-import RadarCompareChart from '@/components/charts/RadarCompareChart.vue'
+import YearCompositionBar from '@/components/historical/YearCompositionBar.vue'
+import PctBar from '@/components/historical/PctBar.vue'
+import { OA_COLORS, oaSoftColor, oaTextColor } from '@/utils/oaRoutes'
 
 const router = useRouter()
 const store = useHistoricalStore()
@@ -28,8 +27,7 @@ const journalsLoading = ref(false)
 const heatmapMetrics = ref([
   { key: 'broadOaPct', label: 'OA amplio', description: 'Todo acceso abierto' },
   { key: 'strongOaPct', label: 'OA fuerte', description: 'DIAMOND+GOLD+GREEN' },
-  { key: 'repositoryPct', label: 'Repositorio', description: 'Depósito art. 37 LCI' },
-  { key: 'complianceScore', label: 'Cumplimiento', description: 'Score Plan S + LCI' }
+  { key: 'repositoryPct', label: 'Repositorio', description: 'Depósito en repositorio' }
 ])
 
 async function fetchInstitutions() {
@@ -87,18 +85,28 @@ function formatNum(n: number) {
   return new Intl.NumberFormat('es-ES').format(n)
 }
 
-function gradeColor(grade: string): string {
-  if (grade.startsWith('A')) return '#22c55e'
-  if (grade.startsWith('B')) return '#3b82f6'
-  if (grade.startsWith('C')) return '#f59e0b'
+// Semáforo de la tabla "Detalle por Año": mismos umbrales (70/50) que el heatmap
+function oaBarColor(pct: number): string {
+  if (pct >= 70) return OA_COLORS.GREEN
+  if (pct >= 50) return OA_COLORS.HYBRID
   return '#ef4444'
 }
 
-function semaforoClass(pct: number): string {
-  if (pct >= 70) return 'sem-green'
-  if (pct >= 50) return 'sem-yellow'
-  return 'sem-red'
+function oaCellClass(pct: number): string {
+  if (pct >= 70) return 'oa-cell-good'
+  if (pct >= 50) return 'oa-cell-mid'
+  return 'oa-cell-low'
 }
+
+// Columnas por ruta en la tabla "Detalle por Año": cabecera en color sólido
+// de la ruta y celdas en el mismo tono suave (oaSoftColor)
+const ROUTE_COLUMNS = [
+  { route: 'DIAMOND', key: 'diamondCount' },
+  { route: 'GOLD', key: 'goldCount' },
+  { route: 'GREEN', key: 'greenCount' },
+  { route: 'HYBRID', key: 'hybridCount' },
+  { route: 'CLOSED', key: 'closedCount' }
+] as const
 
 // Heatmap color
 function heatmapColor(value: number): string {
@@ -117,15 +125,16 @@ const avgOaPct = computed(() => {
   return Math.round(avg * 10) / 10
 })
 const totalApcCost = computed(() => store.filteredData.reduce((s, d) => s + d.totalApcCost, 0))
-const avgCompliance = computed(() => {
-  if (store.filteredData.length === 0) return 0
-  const avg = store.filteredData.reduce((s, d) => s + d.complianceScore, 0) / store.filteredData.length
-  return Math.round(avg * 10) / 10
-})
-const latestGrade = computed(() => {
-  const sorted = [...store.filteredData].sort((a, b) => b.year - a.year)
-  return sorted[0]?.complianceGrade || '—'
-})
+
+const yearLabels = computed(() => store.filteredData.map(d => String(d.year)))
+const routeCountsByYear = computed(() => store.filteredData.map(d => ({
+  DIAMOND: d.diamondCount,
+  GOLD: d.goldCount,
+  GREEN: d.greenCount,
+  HYBRID: d.hybridCount,
+  BRONZE: d.bronzeCount,
+  CLOSED: d.closedCount
+})))
 
 watch(() => store.selectedYears, (newYears) => {
   if (selectedInstitutionId.value && newYears.length > 0) {
@@ -143,7 +152,7 @@ onMounted(() => {
     <div class="d-flex align-items-center justify-content-between mb-4">
       <div>
         <h1 class="page-title">Análisis Histórico</h1>
-        <p class="text-muted mb-0 small">Evolución temporal de métricas de acceso abierto, APCs y cumplimiento normativo</p>
+        <p class="text-muted mb-0 small">Evolución temporal de métricas de acceso abierto y APCs</p>
       </div>
     </div>
 
@@ -209,7 +218,7 @@ onMounted(() => {
 
       <!-- KPI summary cards -->
       <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg-4">
           <div class="card shadow-sm h-100">
             <div class="card-body">
               <div class="d-flex align-items-center gap-2 mb-2">
@@ -224,7 +233,7 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg-4">
           <div class="card shadow-sm h-100">
             <div class="card-body">
               <div class="d-flex align-items-center gap-2 mb-2">
@@ -243,7 +252,7 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg-4">
           <div class="card shadow-sm h-100">
             <div class="card-body">
               <div class="d-flex align-items-center gap-2 mb-2">
@@ -258,43 +267,14 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <div class="d-flex align-items-center gap-2 mb-2">
-                <span class="d-inline-flex align-items-center justify-content-center rounded"
-                  style="width:32px;height:32px;background:rgba(34,197,94,0.1)">
-                  <i class="bi bi-shield-check" style="color:#22c55e"></i>
-                </span>
-                <small class="text-muted fw-medium">Cumplimiento medio</small>
-              </div>
-              <div class="d-flex align-items-center gap-2">
-                <p class="h3 fw-bold mb-0" :style="{ color: gradeColor(latestGrade) }">{{ avgCompliance }}</p>
-                <span class="badge fs-6" :style="{ background: gradeColor(latestGrade), color: '#fff' }">
-                  {{ latestGrade }}
-                </span>
-              </div>
-              <small class="text-muted">Score promedio (última nota: {{ latestGrade }})</small>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <!-- Evolution of OA -->
+      <!-- Publications by year and OA route -->
       <div class="card shadow-sm mb-4">
         <div class="card-body">
-          <h5 class="card-title fs-6 fw-semibold mb-1">Evolución del Acceso Abierto</h5>
-          <p class="text-muted small mb-3">Porcentaje de artículos en acceso abierto a lo largo del tiempo</p>
-          <OaEvolutionChart :data="store.filteredData" />
-        </div>
-      </div>
-
-      <!-- OA Routes stacked -->
-      <div class="card shadow-sm mb-4">
-        <div class="card-body">
-          <h5 class="card-title fs-6 fw-semibold mb-1">Rutas de Acceso Abierto por Año</h5>
-          <p class="text-muted small mb-3">Distribución porcentual de cada ruta OA (DIAMOND, GOLD, GREEN, HYBRID, BRONZE, CLOSED)</p>
-          <OaRoutesStackedBarChart :data="store.filteredData" />
+          <h5 class="card-title fs-6 fw-semibold mb-1">Publicaciones por Año y Ruta de Acceso Abierto</h5>
+          <p class="text-muted small mb-3">Dos columnas por año: abierto sin coste de publicación (Verde + Diamante) frente a con APC (Oro + Híbrido) o sin apertura garantizada (Bronce + Cerrado)</p>
+          <OaRoutesColumnChart :categories="yearLabels" :counts="routeCountsByYear" />
         </div>
       </div>
 
@@ -317,39 +297,6 @@ onMounted(() => {
               <ApcArticlesChart :data="store.filteredData" />
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Compliance Evolution + Publications Volume -->
-      <div class="row g-4 mb-4">
-        <div class="col-lg-7">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <h5 class="card-title fs-6 fw-semibold mb-1">
-                <i class="bi bi-shield-check me-2" style="color:#22c55e"></i>Evolución del Cumplimiento Normativo
-              </h5>
-              <p class="text-muted small mb-3">Score de cumplimiento (Plan S + art. 37 LCI) por año</p>
-              <ComplianceEvolutionChart :data="store.filteredData" />
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-5">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <h5 class="card-title fs-6 fw-semibold mb-1">Volumen de Publicaciones</h5>
-              <p class="text-muted small mb-3">Total de artículos de revista por año</p>
-              <PublicationsVolumeChart :data="store.filteredData" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Radar comparison -->
-      <div class="card shadow-sm mb-4" v-if="store.filteredData.length >= 2">
-        <div class="card-body">
-          <h5 class="card-title fs-6 fw-semibold mb-1">Comparativa Multidimensional</h5>
-          <p class="text-muted small mb-3">Radar chart comparando las métricas clave entre los años seleccionados</p>
-          <RadarCompareChart :data="store.filteredData" />
         </div>
       </div>
 
@@ -397,42 +344,51 @@ onMounted(() => {
                   <th>Año</th>
                   <th class="text-center">Artículos</th>
                   <th class="text-center">% OA</th>
-                  <th class="text-center">DIAMOND</th>
-                  <th class="text-center">GOLD</th>
-                  <th class="text-center">GREEN</th>
-                  <th class="text-center">HYBRID</th>
-                  <th class="text-center">CLOSED</th>
+                  <th class="text-center d-none d-xl-table-cell">Composición OA</th>
+                  <th
+                    v-for="col in ROUTE_COLUMNS"
+                    :key="col.route"
+                    class="text-center route-th"
+                    :style="{ background: OA_COLORS[col.route], color: oaTextColor(col.route) }"
+                  >{{ col.route }}</th>
                   <th class="text-center">Repositorio</th>
                   <th class="text-end">Coste APC</th>
-                  <th class="text-center">Score</th>
-                  <th class="text-center">Nota</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="d in store.filteredData" :key="d.year">
                   <td class="fw-semibold">{{ d.year }}</td>
                   <td class="text-center">{{ formatNum(d.totalPublications) }}</td>
-                  <td class="text-center">
-                    <span :class="d.broadOaPct >= 70 ? 'text-success' : d.broadOaPct >= 50 ? 'text-warning' : 'text-danger'" class="fw-semibold">
-                      {{ d.broadOaPct }}%
-                    </span>
+                  <td class="text-center oa-cell" :class="oaCellClass(d.broadOaPct)">
+                    <PctBar :pct="d.broadOaPct" :label="d.broadOaPct + '%'" :color="oaBarColor(d.broadOaPct)" />
                   </td>
-                  <td class="text-center small">{{ d.diamondCount }}</td>
-                  <td class="text-center small">{{ d.goldCount }}</td>
-                  <td class="text-center small">{{ d.greenCount }}</td>
-                  <td class="text-center small">{{ d.hybridCount }}</td>
-                  <td class="text-center small text-danger">{{ d.closedCount }}</td>
+                  <td class="text-center d-none d-xl-table-cell">
+                    <YearCompositionBar
+                      :segments="{
+                        DIAMOND: d.diamondCount,
+                        GOLD: d.goldCount,
+                        GREEN: d.greenCount,
+                        HYBRID: d.hybridCount,
+                        BRONZE: d.bronzeCount,
+                        CLOSED: d.closedCount
+                      }"
+                      :total="d.totalPublications"
+                    />
+                  </td>
+                  <td
+                    v-for="col in ROUTE_COLUMNS"
+                    :key="col.route"
+                    class="text-center small"
+                    :style="{ background: oaSoftColor(col.route) }"
+                  >{{ d[col.key] }}</td>
                   <td class="text-center">
-                    <span class="text-muted small">{{ d.repositoryCount }}</span>
-                    <small class="text-muted ms-1">({{ d.repositoryPct }}%)</small>
+                    <PctBar
+                      :pct="d.repositoryPct"
+                      :label="formatNum(d.repositoryCount) + ' · ' + d.repositoryPct + '%'"
+                      :color="OA_COLORS.GREEN"
+                    />
                   </td>
                   <td class="text-end small">{{ formatEur(d.totalApcCost) }}</td>
-                  <td class="text-center fw-semibold" :style="{ color: gradeColor(d.complianceGrade) }">{{ d.complianceScore }}</td>
-                  <td class="text-center">
-                    <span class="badge" :style="{ background: gradeColor(d.complianceGrade), color: '#fff' }">
-                      {{ d.complianceGrade }}
-                    </span>
-                  </td>
                 </tr>
               </tbody>
             </table>
@@ -487,21 +443,6 @@ onMounted(() => {
   color: var(--color-text-primary);
 }
 
-.sem-green {
-  background: #22c55e;
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
-}
-
-.sem-yellow {
-  background: #f59e0b;
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
-}
-
-.sem-red {
-  background: #ef4444;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
-}
-
 .heatmap-table {
   font-size: 0.85rem;
 }
@@ -518,5 +459,30 @@ onMounted(() => {
 .heatmap-table th,
 .heatmap-table td {
   vertical-align: middle;
+}
+
+/* Celdas de ruta en la tabla "Detalle por Año": fondo suave del color de ruta
+   (inline) y cabecera en sólido. Aquí solo tipografía de cabecera. */
+.route-th {
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+/* Celda % OA de la tabla "Detalle por Año": fondo semáforo suave */
+.oa-cell {
+  transition: background var(--transition-fast) ease;
+}
+
+.oa-cell-good {
+  background: rgba(68, 112, 50, 0.10);
+}
+
+.oa-cell-mid {
+  background: rgba(243, 156, 18, 0.12);
+}
+
+.oa-cell-low {
+  background: rgba(239, 68, 68, 0.10);
 }
 </style>

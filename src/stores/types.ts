@@ -89,12 +89,6 @@ export interface JournalApcItem {
   totalApcCost: number
 }
 
-export interface JournalCountItem {
-  journalName: string
-  journalIssn: string
-  publicationCount: number
-}
-
 export interface InstitutionScatterItem {
   institutionId: string
   institutionName: string
@@ -102,21 +96,6 @@ export interface InstitutionScatterItem {
   oaPercentage: number
   totalApcCost: number
   hasApcData: boolean
-}
-
-export interface ComplianceData {
-  institutionId: string
-  institutionName: string
-  year: number | null
-  totalPublications: number
-  strongOaPct: number
-  repositoryPct: number
-  broadOaPct: number
-  overallScore: number
-  grade: string
-  strongOaCount: number
-  repositoryCount: number
-  broadOaCount: number
 }
 
 export interface RegionalStats {
@@ -132,8 +111,6 @@ export interface RegionalStats {
   hybridPct: number
   bronzePct: number
   closedPct: number
-  complianceScore: number
-  complianceGrade: string
 }
 
 export interface HistoricalYear {
@@ -146,12 +123,9 @@ export interface HistoricalYear {
   bronzeCount: number
   closedCount: number
   repositoryCount: number
-  oaPercentage: number
   strongOaPct: number
   repositoryPct: number
   broadOaPct: number
-  complianceScore: number
-  complianceGrade: string
   totalApcCost: number
   articlesWithApc: number
   averageApc: number
@@ -161,4 +135,35 @@ export interface HistoricalData {
   institutionId: string
   institutionName: string
   yearlyData: HistoricalYear[]
+}
+
+export interface PublisherApcItem {
+  publisher: string
+  totalApc: number
+  articleCount: number
+  averageApc: number
+  stdDev: number | null
+  percentage: number
+  goldCount: number
+  hybridCount: number
+}
+
+export interface PublisherArticleItem {
+  id: string
+  doi: string | null
+  title: string | null
+  journalName: string | null
+  journalIssn: string | null
+  apcEstimatedEur: number
+  oaStatus: string | null
+}
+
+export interface JournalArticleItem {
+  id: string
+  doi: string | null
+  title: string | null
+  journalName: string | null
+  journalIssn: string | null
+  apcEstimatedEur: number
+  oaStatus: string | null
 }

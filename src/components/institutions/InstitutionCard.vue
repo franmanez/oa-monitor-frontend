@@ -79,27 +79,19 @@ const harvestStatus = computed(() => {
         </div>
 
         <div class="card-meta">
-          <a
+          <span
             v-if="rorShort"
             class="meta-ror"
-            :href="institution.rorId"
-            target="_blank"
-            rel="noopener"
-            title="Ficha ROR"
-            @click.stop
-          >{{ rorShort }}</a>
-          <a
+            title="Identificador ROR"
+          >{{ rorShort }}</span>
+          <span
             v-if="repoUrl"
             class="meta-repo"
-            :href="institution.oaiEndpoint || undefined"
-            target="_blank"
-            rel="noopener"
             title="Repositorio institucional"
-            @click.stop
           >
             <i class="bi bi-archive"></i>
             {{ repoUrl }}
-          </a>
+          </span>
         </div>
       </div>
 
@@ -218,13 +210,9 @@ const harvestStatus = computed(() => {
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   font-weight: 500;
-  text-decoration: none;
   font-family: var(--font-mono);
-  transition: opacity var(--transition-fast);
-}
-
-.meta-ror:hover {
-  opacity: 0.8;
+  cursor: default;
+  user-select: text;
 }
 
 .meta-repo {
@@ -233,15 +221,11 @@ const harvestStatus = computed(() => {
   gap: 4px;
   font-size: 0.75rem;
   color: var(--color-accent);
-  text-decoration: none;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   background: var(--color-accent-soft);
-  transition: opacity var(--transition-fast);
-}
-
-.meta-repo:hover {
-  opacity: 0.8;
+  cursor: default;
+  user-select: text;
 }
 
 .meta-repo i {

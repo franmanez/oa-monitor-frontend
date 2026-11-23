@@ -37,18 +37,18 @@
   --color-text-muted: #98a2b3;
   --color-text-inverse: #ffffff;
 
-  /* OA Status Colors */
-  --oa-diamond: #7a5af8;
+  /* OA Status Colors — paleta OpenAIRE (fuente: src/utils/oaRoutes.ts) */
+  --oa-diamond: #9c27b0;
   --oa-diamond-text: #ffffff;
-  --oa-gold: #f79009;
-  --oa-gold-text: #101828;
-  --oa-green: #12b76a;
+  --oa-gold: #f1c40f;
+  --oa-gold-text: #1f2937;
+  --oa-green: #447032;
   --oa-green-text: #ffffff;
-  --oa-hybrid: #465fff;
-  --oa-hybrid-text: #ffffff;
-  --oa-bronze: #dc6803;
+  --oa-hybrid: #f39c12;
+  --oa-hybrid-text: #1f2937;
+  --oa-bronze: #a0522d;
   --oa-bronze-text: #ffffff;
-  --oa-closed: #f04438;
+  --oa-closed: #9e9e9e;
   --oa-closed-text: #ffffff;
 
   /* Shadows (TailAdmin shadows) */
@@ -105,6 +105,6 @@
   --shadow-card: 0px 1px 3px 0px rgba(0, 0, 0, 0.3), 0px 1px 2px 0px rgba(0, 0, 0, 0.2);
   --shadow-card-hover: 0px 4px 8px -2px rgba(0, 0, 0, 0.4), 0px 2px 4px -2px rgba(0, 0, 0, 0.3);
 
-  --oa-gold-text: #f1f5f9;
-  --oa-closed-text: #f1f5f9;
+  --oa-gold-text: #1f2937;
+  --oa-closed-text: #1f2937;
 }

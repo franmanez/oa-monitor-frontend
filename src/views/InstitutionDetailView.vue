@@ -2,10 +2,11 @@
 import { onMounted, computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useInstitutionDetailStore } from '@/stores/institutionDetail'
-import type { PublicationItem, PublicationPageResponse, JournalApcItem, JournalCountItem, ComplianceData } from '@/stores/types'
+import type { PublicationItem, PublicationPageResponse } from '@/stores/types'
 import OaPieChart from '@/components/charts/OaPieChart.vue'
-import JournalApcBarChart from '@/components/charts/JournalApcBarChart.vue'
-import TopJournalsChart from '@/components/charts/TopJournalsChart.vue'
+import JournalApcPanel from '@/components/journal/JournalApcPanel.vue'
+import PublisherApcPanel from '@/components/publisher/PublisherApcPanel.vue'
+import { OA_COLORS, OA_DESCRIPTIONS, oaLabel, oaTextColor } from '@/utils/oaRoutes'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,79 +34,7 @@ const harvestYear = ref(new Date().getFullYear())
 const harvesting = ref(false)
 const harvestingOai = ref(false)
 
-const activeTab = ref('revistas')
-const journalApcData = ref<JournalApcItem[]>([])
-const journalTopData = ref<JournalCountItem[]>([])
-const journalsLoading = ref(false)
-const compliance = ref<ComplianceData | null>(null)
-const complianceLoading = ref(false)
-const showComplianceInfo = ref(false)
-
-async function fetchCompliance() {
-  complianceLoading.value = true
-  try {
-    const yearParam = store.selectedYear && store.selectedYear !== 'all' ? `?year=${store.selectedYear}` : ''
-    const res = await fetch(`/api/institutions/${route.params.id}/compliance${yearParam}`)
-    compliance.value = res.ok ? await res.json() : null
-  } catch {
-    compliance.value = null
-  } finally {
-    complianceLoading.value = false
-  }
-}
-
-const gradeColor = computed(() => {
-  if (!compliance.value) return '#6b7280'
-  const s = compliance.value.overallScore
-  if (s >= 80) return '#22c55e'
-  if (s >= 60) return '#3b82f6'
-  if (s >= 40) return '#f59e0b'
-  return '#ef4444'
-})
-
-const gradeLabel = computed(() => {
-  if (!compliance.value) return ''
-  const s = compliance.value.overallScore
-  if (s >= 80) return 'Excelente'
-  if (s >= 60) return 'Notable'
-  if (s >= 40) return 'Aceptable'
-  return 'Insuficiente'
-})
-
-function semaforoClass(pct: number): string {
-  if (pct >= 70) return 'sem-green'
-  if (pct >= 50) return 'sem-yellow'
-  return 'sem-red'
-}
-
-const gradeScale = [
-  { grade: 'A+', label: 'Score >= 90 · Excelente', color: '#22c55e' },
-  { grade: 'A', label: 'Score >= 80', color: '#22c55e' },
-  { grade: 'B+', label: 'Score >= 70 · Notable', color: '#3b82f6' },
-  { grade: 'B', label: 'Score >= 60', color: '#3b82f6' },
-  { grade: 'C+', label: 'Score >= 50 · Aceptable', color: '#f59e0b' },
-  { grade: 'C', label: 'Score >= 40', color: '#f59e0b' },
-  { grade: 'D', label: 'Score >= 30 · Insuficiente', color: '#ef4444' },
-  { grade: 'F', label: 'Score < 30', color: '#ef4444' },
-]
-
-async function fetchJournalData() {
-  journalsLoading.value = true
-  try {
-    const yearParam = store.selectedYear && store.selectedYear !== 'all' ? `?year=${store.selectedYear}` : ''
-    const [apcRes, topRes] = await Promise.all([
-      fetch(`/api/institutions/${route.params.id}/journals/apc${yearParam}`),
-      fetch(`/api/institutions/${route.params.id}/journals/top${yearParam}&limit=10`)
-    ])
-    journalApcData.value = apcRes.ok ? await apcRes.json() : []
-    journalTopData.value = topRes.ok ? await topRes.json() : []
-  } catch {
-    journalApcData.value = []
-    journalTopData.value = []
-  } finally {
-    journalsLoading.value = false
-  }
-}
+const activeTab = ref<'resumen' | 'journals' | 'apc' | 'articulos'>('resumen')
 
 async function runHarvest() {
   harvesting.value = true
@@ -186,25 +115,17 @@ async function fetchPublications() {
   }
 }
 
-watch(() => store.selectedYear, () => { pubsPage.value = 0; fetchPublications(); fetchJournalData(); fetchCompliance() })
+watch(() => store.selectedYear, () => { pubsPage.value = 0; fetchPublications() })
 
 onMounted(() => {
   store.fetchAll(route.params.id as string)
   fetchPublications()
-  fetchJournalData()
-  fetchCompliance()
 })
 
-function statusBadgeClass(status: string | null) {
-  switch (status) {
-    case 'GOLD': return 'text-bg-warning'
-    case 'HYBRID': return 'text-bg-primary'
-    case 'GREEN': return 'text-bg-success'
-    case 'BRONZE': return 'text-bg-secondary'
-    case 'CLOSED': return 'text-bg-danger'
-    case 'DIAMOND': return 'badge-diamond'
-    default: return 'text-bg-light text-dark'
-  }
+function badgeStyle(status: string | null | undefined) {
+  const color = status ? OA_COLORS[status] : undefined
+  if (!color) return { background: '#e5e7eb', color: '#374151' }
+  return { background: color, color: oaTextColor(status) }
 }
 
 function formatEur(n: number | null | undefined) {
@@ -215,37 +136,13 @@ function formatEur(n: number | null | undefined) {
   }).format(n)
 }
 
-function oaLabel(key: string | null): string {
-  if (!key) return '—'
-  const map: Record<string, string> = { GOLD: 'Oro', HYBRID: 'Híbrido', GREEN: 'Verde', BRONZE: 'Bronce', CLOSED: 'Cerrado', DIAMOND: 'Diamante' }
-  return map[key] || key
-}
-
-const oaDescriptions: Record<string, string> = {
-  DIAMOND: 'Revista 100% abierta sin coste para el autor ni para el lector. Financiada por instituciones o subvenciones.',
-  GOLD: 'Artículo publicado en una revista de acceso abierto. El autor o su institución paga un APC (Article Processing Charge).',
-  GREEN: 'Versión del artículo depositada en un repositorio institucional o temático (autoarchivado). Puede tener embargo.',
-  HYBRID: 'Artículo de acceso abierto en una revista de suscripción. Se paga un APC para liberar ese artículo concreto.',
-  BRONZE: 'Artículo gratuito en la web del editor, pero sin licencia de acceso abierto explícita. Puede retirarse en cualquier momento.',
-  CLOSED: 'Artículo bajo muro de pago. Solo accesible mediante suscripción individual o institucional.'
-}
-
-const oaColors: Record<string, string> = {
-  DIAMOND: '#a855f7',
-  GOLD: '#f59e0b',
-  GREEN: '#22c55e',
-  HYBRID: '#3b82f6',
-  BRONZE: '#d97706',
-  CLOSED: '#ef4444'
-}
-
 const statusCounts = computed(() => {
   return store.filteredSummary?.oaStatusCounts ?? {}
 })
 
 const statusEntries = computed(() => {
   const total = Object.values(statusCounts.value).reduce((a, b) => a + b, 0)
-  return Object.entries(oaColors).map(([key, color]) => ({
+  return Object.entries(OA_COLORS).map(([key, color]) => ({
     key,
     label: oaLabel(key),
     count: statusCounts.value[key] || 0,
@@ -322,6 +219,31 @@ function formatNum(n: number) {
     </div>
 
     <template v-else>
+
+      <ul class="nav nav-tabs detail-tabs mb-4">
+        <li class="nav-item">
+          <button class="nav-link" :class="{ active: activeTab === 'resumen' }" @click="activeTab = 'resumen'">
+            <i class="bi bi-speedometer2 me-1"></i>Resumen
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" :class="{ active: activeTab === 'journals' }" @click="activeTab = 'journals'">
+            <i class="bi bi-journal-text me-1"></i>APC por revista
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" :class="{ active: activeTab === 'apc' }" @click="activeTab = 'apc'">
+            <i class="bi bi-diagram-3 me-1"></i>APC por editorial
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" :class="{ active: activeTab === 'articulos' }" @click="activeTab = 'articulos'">
+            <i class="bi bi-list-ul me-1"></i>Listado de artículos
+          </button>
+        </li>
+      </ul>
+
+      <template v-if="activeTab === 'resumen'">
 
       <div class="row g-3 mb-4">
         <div class="col-sm-4">
@@ -413,7 +335,7 @@ function formatNum(n: number) {
                   <span class="fw-semibold small" style="width:52px;text-align:right">{{ formatNum(item.count) }}</span>
                   <small class="text-muted" style="width:40px;text-align:right">{{ item.pct.toFixed(1) }}%</small>
                 </div>
-                <p class="oa-legend-desc" :style="{ '--desc-color': item.color }">{{ oaDescriptions[item.key] || '' }}</p>
+                <p class="oa-legend-desc" :style="{ '--desc-color': item.color }">{{ OA_DESCRIPTIONS[item.key] || '' }}</p>
               </div>
             </div>
             <div class="oa-dist-chart">
@@ -421,218 +343,6 @@ function formatNum(n: number) {
             </div>
           </div>
           <p v-else class="text-muted text-center small py-4">No hay datos de OA para este período</p>
-        </div>
-      </div>
-
-      <div class="card shadow-sm mb-4 compliance-card">
-        <div class="card-body">
-          <div class="d-flex align-items-start justify-content-between mb-1">
-            <div>
-              <h5 class="card-title fs-6 fw-semibold mb-1">
-                <i class="bi bi-shield-check me-2" style="color:#22c55e"></i>Cumplimiento normativo
-              </h5>
-              <p class="text-muted small mb-0">
-                Índice OpenScope de alineación con el Plan S europeo y el art. 37 de la Ley de la Ciencia (LCI)
-              </p>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary compliance-info-btn" @click="showComplianceInfo = !showComplianceInfo">
-              <i class="bi" :class="showComplianceInfo ? 'bi-x-lg' : 'bi-question-circle'"></i>
-              {{ showComplianceInfo ? 'Cerrar' : '¿Qué es esto?' }}
-            </button>
-          </div>
-
-          <div v-if="showComplianceInfo" class="compliance-info-panel">
-            <div class="compliance-info-section">
-              <div class="d-flex align-items-center gap-2 mb-2">
-                <span class="compliance-methodology-badge">Metodología OpenScope</span>
-              </div>
-              <p class="small mb-2">
-                Este índice es una <strong>herramienta de monitorización propia de OpenScope</strong>.
-                No es un estándar oficial del Plan S ni de la AEI, pero está <strong>alineado con sus principios</strong>.
-                La escala y ponderaciones son internas y están diseñadas para ofrecer una visión comparable
-                del grado de cumplimiento normativo de cada institución.
-              </p>
-            </div>
-
-            <div class="compliance-info-section">
-              <h6><i class="bi bi-info-circle-fill me-2" style="color:#3b82f6"></i>¿Qué es el Plan S?</h6>
-              <p class="small mb-2">
-                <strong>Plan S</strong> es una iniciativa europea impulsada en 2018 por la coalición <em>cOAlition S</em>
-                (formada por más de 30 organismos de financiación de investigación en Europa, incluyendo la <strong>AEI</strong> en España).
-                Su objetivo es que, desde 2021, <strong>toda publicación científica financiada con fondos públicos
-                debe ser inmediatamente accesible en abierto</strong>, sin períodos de embargo.
-              </p>
-              <p class="small mb-2">
-                En España, la alineación con el Plan S se refleja principalmente en el <strong>artículo 37 de la Ley de la Ciencia</strong>
-                (Ley 14/2011, modificada por la Ley 17/2022), que establece la <strong>obligación de depositar en abierto
-                la versión aceptada para publicación</strong> en un repositorio institucional o temático
-                <strong>de forma inmediata a la publicación</strong>, eliminando los periodos de embargo tradicionales.
-              </p>
-            </div>
-
-            <div class="compliance-info-section">
-              <h6><i class="bi bi-calculator me-2" style="color:#a855f7"></i>¿Por qué estas tres métricas?</h6>
-              <p class="small mb-2">
-                El Plan S y la normativa española exigen fundamentalmente dos cosas:
-              </p>
-              <ul class="small mb-2">
-                <li><strong>Que el artículo esté en abierto</strong> (preferiblemente en rutas sin restricciones como DIAMOND, GOLD o GREEN)</li>
-                <li><strong>Que esté depositado en un repositorio</strong> (para garantizar acceso permanente)</li>
-              </ul>
-              <p class="small mb-2">
-                Estas dos métricas capturan los requisitos legales. La tercera (OA amplio) ofrece una visión más completa
-                incluyendo rutas que, aunque no siempre cumplen Plan S al 100%, indican que el artículo es accesible.
-              </p>
-
-              <div class="compliance-metric-explanation">
-                <div class="compliance-metric-row">
-                  <span class="compliance-metric-weight" style="color:#22c55e">40%</span>
-                  <div>
-                    <strong class="small">OA fuerte</strong>
-                    <span class="text-muted small"> — Artículos en rutas OA plenas (DIAMOND + GOLD + GREEN).
-                    Son las rutas que cumplen Plan S sin restricciones. Tiene el mayor peso porque
-                    representa el cumplimiento directo del requisito de acceso inmediato.</span>
-                  </div>
-                </div>
-                <div class="compliance-metric-row">
-                  <span class="compliance-metric-weight" style="color:#3b82f6">30%</span>
-                  <div>
-                    <strong class="small">Depósito en repositorio</strong>
-                    <span class="text-muted small"> — % de artículos depositados en un repositorio institucional.
-                    Es lo que mide directamente el art. 37 LCI. Mantiene un peso alto porque
-                    el depósito es la obligación legal explícita en España.</span>
-                  </div>
-                </div>
-                <div class="compliance-metric-row">
-                  <span class="compliance-metric-weight" style="color:#f59e0b">30%</span>
-                  <div>
-                    <strong class="small">OA amplio</strong>
-                    <span class="text-muted small"> — % total de artículos accesibles (todo menos CLOSED).
-                    Incluye también HYBRID y BRONZE, que tienen limitaciones (pueden no cumplir
-                    Plan S completamente). Se incluye como visión global del acceso abierto.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="compliance-info-section">
-              <h6><i class="bi bi-award me-2" style="color:#f59e0b"></i>¿De dónde vienen las notas?</h6>
-              <p class="small mb-2">
-                La nota se asigna según el score global en una <strong>escala de 8 niveles</strong>,
-                inspirada en las calificaciones académicas europeas:
-              </p>
-              <div class="compliance-grade-scale">
-                <div class="compliance-grade-item" v-for="g in gradeScale" :key="g.grade">
-                  <span class="compliance-grade-badge" :style="{ background: g.color }">{{ g.grade }}</span>
-                  <span class="small text-muted">{{ g.label }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="compliance-info-section mb-0">
-              <h6><i class="bi bi-exclamation-triangle me-2" style="color:#ef4444"></i>Limitaciones de los datos</h6>
-              <p class="small mb-2">
-                Este índice se calcula a partir de <strong>datos abiertos</strong> (OpenAlex, repositorios institucionales, OpenAPC).
-                Existen factores que <strong>no se pueden capturar</strong> automáticamente:
-              </p>
-              <ul class="small mb-0">
-                <li><strong>Acuerdos transformativos</strong> institucionales que cubran total o parcialmente los APC</li>
-                <li><strong>Artículos correctamente depositados</strong> pero no detectados por el harvest OAI-PMH</li>
-                <li><strong>Publicaciones OA de facto</strong> que no están correctamente etiquetadas en las bases de datos</li>
-                <li><strong>Cobertura variable</strong> según la universidad (algunas tienen mejor indexación en OpenAlex que otras)</li>
-              </ul>
-            </div>
-          </div>
-
-          <div v-if="complianceLoading" class="text-center py-4">
-            <div class="spinner-border spinner-border-sm text-primary" role="status">
-              <span class="visually-hidden">Cargando...</span>
-            </div>
-          </div>
-
-          <div v-else-if="compliance && compliance.totalPublications > 0" class="compliance-grid">
-            <div class="compliance-gauge">
-              <div class="compliance-gauge-ring">
-                <svg viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="52" fill="none" :stroke="gradeColor + '22'" stroke-width="10"/>
-                  <circle cx="60" cy="60" r="52" fill="none" :stroke="gradeColor" stroke-width="10"
-                    :stroke-dasharray="(compliance.overallScore / 100 * 326.7) + ' ' + (326.7 - compliance.overallScore / 100 * 326.7)"
-                    stroke-linecap="round" style="transform:rotate(-90deg);transform-origin:center"/>
-                </svg>
-                <div class="compliance-gauge-inner">
-                  <span class="compliance-gauge-grade" :style="{ color: gradeColor }">{{ compliance.grade }}</span>
-                  <span class="compliance-gauge-label">{{ gradeLabel }}</span>
-                </div>
-              </div>
-              <div class="compliance-gauge-score text-center">
-                <span class="fs-4 fw-bold" :style="{ color: gradeColor }">{{ compliance.overallScore }}</span>
-                <span class="text-muted small"> / 100</span>
-              </div>
-            </div>
-
-            <div class="compliance-metrics">
-              <div class="compliance-metric">
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="compliance-sem" :class="semaforoClass(compliance.strongOaPct)"></span>
-                    <small class="fw-semibold">OA fuerte</small>
-                  </div>
-                  <div class="d-flex align-items-center gap-2">
-                    <small class="text-muted">{{ formatNum(compliance.strongOaCount) }} art.</small>
-                    <small class="fw-bold" :style="{ color: compliance.strongOaPct >= 70 ? '#22c55e' : compliance.strongOaPct >= 50 ? '#f59e0b' : '#ef4444' }">
-                      {{ compliance.strongOaPct }}%
-                    </small>
-                  </div>
-                </div>
-                <div class="progress" style="height:8px">
-                  <div class="progress-bar" :style="{ width: compliance.strongOaPct + '%', background: compliance.strongOaPct >= 70 ? '#22c55e' : compliance.strongOaPct >= 50 ? '#f59e0b' : '#ef4444' }"></div>
-                </div>
-                <small class="text-muted d-block mt-1" style="font-size:0.7rem">DIAMOND + GOLD + GREEN · Rutas OA planas</small>
-              </div>
-
-              <div class="compliance-metric">
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="compliance-sem" :class="semaforoClass(compliance.repositoryPct)"></span>
-                    <small class="fw-semibold">Depósito en repositorio</small>
-                  </div>
-                  <div class="d-flex align-items-center gap-2">
-                    <small class="text-muted">{{ formatNum(compliance.repositoryCount) }} art.</small>
-                    <small class="fw-bold" :style="{ color: compliance.repositoryPct >= 70 ? '#22c55e' : compliance.repositoryPct >= 50 ? '#f59e0b' : '#ef4444' }">
-                      {{ compliance.repositoryPct }}%
-                    </small>
-                  </div>
-                </div>
-                <div class="progress" style="height:8px">
-                  <div class="progress-bar" :style="{ width: compliance.repositoryPct + '%', background: compliance.repositoryPct >= 70 ? '#22c55e' : compliance.repositoryPct >= 50 ? '#f59e0b' : '#ef4444' }"></div>
-                </div>
-                <small class="text-muted d-block mt-1" style="font-size:0.7rem">Art. 37 LCI · Depósito obligatorio en repositorio</small>
-              </div>
-
-              <div class="compliance-metric">
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="compliance-sem" :class="semaforoClass(compliance.broadOaPct)"></span>
-                    <small class="fw-semibold">OA amplio</small>
-                  </div>
-                  <div class="d-flex align-items-center gap-2">
-                    <small class="text-muted">{{ formatNum(compliance.broadOaCount) }} art.</small>
-                    <small class="fw-bold" :style="{ color: compliance.broadOaPct >= 70 ? '#22c55e' : compliance.broadOaPct >= 50 ? '#f59e0b' : '#ef4444' }">
-                      {{ compliance.broadOaPct }}%
-                    </small>
-                  </div>
-                </div>
-                <div class="progress" style="height:8px">
-                  <div class="progress-bar" :style="{ width: compliance.broadOaPct + '%', background: compliance.broadOaPct >= 70 ? '#22c55e' : compliance.broadOaPct >= 50 ? '#f59e0b' : '#ef4444' }"></div>
-                </div>
-                <small class="text-muted d-block mt-1" style="font-size:0.7rem">Todo acceso abierto (incluye HYBRID, BRONZE)</small>
-              </div>
-            </div>
-          </div>
-
-          <p v-else-if="compliance && compliance.totalPublications === 0" class="text-muted text-center small py-4 mb-0">
-            No hay datos de publicaciones para evaluar el cumplimiento.
-          </p>
         </div>
       </div>
 
@@ -655,31 +365,19 @@ function formatNum(n: number) {
         </div>
       </div>
 
-      <div class="card shadow-sm mb-4">
-        <div class="card-body">
-          <h5 class="card-title fs-6 fw-semibold mb-3">Revistas</h5>
-          <div v-if="journalsLoading" class="text-center py-4">
-            <div class="spinner-border spinner-border-sm text-primary" role="status">
-              <span class="visually-hidden">Cargando...</span>
-            </div>
-          </div>
-          <div v-else class="row g-3">
-            <div class="col-lg-6">
-              <h6 class="fw-semibold small text-muted mb-2">Coste APC por revista</h6>
-              <JournalApcBarChart :journals="journalApcData" />
-            </div>
-            <div class="col-lg-6">
-              <h6 class="fw-semibold small text-muted mb-2">Top 10 revistas por volumen</h6>
-              <TopJournalsChart :journals="journalTopData" />
-            </div>
-          </div>
-        </div>
-      </div>
+      </template>
 
+      <!-- Tab: gasto en APC por revista (treemap + drill-down a artículos) -->
+      <template v-if="activeTab === 'journals'">
+        <JournalApcPanel :institution-id="String(route.params.id)" :year="store.selectedYear || 'all'" />
+      </template>
+
+      <!-- Tab: listado completo de artículos -->
+      <template v-if="activeTab === 'articulos'">
       <div class="card shadow-sm mb-4">
         <div class="card-body">
           <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3">
-            <h5 class="card-title fs-6 fw-semibold mb-0">Artículos de revista</h5>
+            <h5 class="card-title fs-6 fw-semibold mb-0">Listado de artículos de revista</h5>
             <div class="d-flex gap-2">
               <select v-model="filterStatus" @change="pubsPage=0;fetchPublications()" class="form-select form-select-sm" style="width:auto">
                 <option value="">Todos los estados</option>
@@ -743,7 +441,7 @@ function formatNum(n: number) {
                   </td>
                   <td class="text-center small">{{ pub.publicationYear }}</td>
                   <td class="text-center">
-                    <span class="badge text-nowrap" :class="statusBadgeClass(pub.oaStatusResolved || pub.oaStatusOpenalex)">
+                    <span class="badge text-nowrap" :style="badgeStyle(pub.oaStatusResolved || pub.oaStatusOpenalex)">
                       {{ oaLabel(pub.oaStatusResolved || pub.oaStatusOpenalex) }}
                     </span>
                   </td>
@@ -795,6 +493,12 @@ function formatNum(n: number) {
           </div>
         </div>
       </div>
+
+      </template>
+
+      <PublisherApcPanel v-if="activeTab === 'apc'"
+        :institution-id="String(route.params.id)"
+        :year="store.selectedYear || 'all'" />
 
     </template>
   </div>
@@ -903,11 +607,6 @@ function formatNum(n: number) {
   color: var(--color-primary);
 }
 
-.badge-diamond {
-  background-color: #7a5af8 !important;
-  color: #fff !important;
-}
-
 .oa-legend-desc {
   font-size: 0.75rem;
   line-height: 1.4;
@@ -938,174 +637,29 @@ function formatNum(n: number) {
   min-height: 320px;
 }
 
-.compliance-card {
-  border-left: 3px solid #22c55e;
+.detail-tabs {
+  border-bottom: 2px solid var(--color-border, #e5e7eb);
 }
 
-.compliance-info-btn {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-}
-
-.compliance-info-panel {
-  background: var(--bs-tertiary-bg, #f8f9fa);
-  border-radius: var(--radius-lg, 12px);
-  padding: var(--space-md, 1rem);
-  margin: var(--space-md, 1rem) 0;
-  border: 1px solid var(--color-border, #e5e7eb);
-}
-
-.compliance-info-section {
-  margin-bottom: var(--space-md, 1rem);
-  padding-bottom: var(--space-md, 1rem);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
-}
-
-.compliance-info-section h6 {
-  font-size: 0.85rem;
-  margin-bottom: 0.5rem;
-}
-
-.compliance-info-section p {
-  line-height: 1.6;
-}
-
-.compliance-metric-explanation {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.compliance-metric-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.compliance-metric-weight {
-  font-weight: 800;
+.detail-tabs .nav-link {
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-weight: 600;
   font-size: 0.9rem;
-  min-width: 36px;
-  flex-shrink: 0;
-}
-
-.compliance-grade-scale {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.compliance-grade-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.compliance-grade-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 24px;
-  border-radius: 6px;
-  color: white;
-  font-weight: 800;
-  font-size: 0.7rem;
-  flex-shrink: 0;
-}
-
-.compliance-grid {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: var(--space-xl, 1.5rem);
-  margin-top: var(--space-md, 1rem);
-  align-items: start;
-}
-
-@media (max-width: 768px) {
-  .compliance-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.compliance-gauge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs, 0.5rem);
-}
-
-.compliance-gauge-ring {
-  position: relative;
-  width: 140px;
-  height: 140px;
-}
-
-.compliance-gauge-ring svg {
-  width: 100%;
-  height: 100%;
-}
-
-.compliance-gauge-inner {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.compliance-gauge-grade {
-  font-size: 2.25rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.compliance-gauge-label {
-  font-size: 0.75rem;
   color: var(--color-text-muted);
-  margin-top: 2px;
+  cursor: pointer;
+  background: transparent;
+  padding: 0.5rem 1rem;
 }
 
-.compliance-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md, 1rem);
+.detail-tabs .nav-link:hover {
+  color: var(--color-primary);
 }
 
-.compliance-sem {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.sem-green {
-  background: #22c55e;
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
-}
-
-.sem-yellow {
-  background: #f59e0b;
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
-}
-
-.sem-red {
-  background: #ef4444;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
-}
-
-.compliance-methodology-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  color: white;
-  font-size: 0.7rem;
-  font-weight: 700;
-  border-radius: 20px;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+.detail-tabs .nav-link.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  background: transparent;
 }
 </style>

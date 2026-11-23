@@ -70,30 +70,24 @@ function harvestAgeClass(dateStr: string | null) {
                 </div>
                 <div class="text-truncate">
                   <p class="inst-name text-truncate">{{ inst.name }}</p>
-                  <a
-                    class="small font-mono text-truncate d-block inst-ror-link"
-                    :href="inst.rorId"
-                    target="_blank"
-                    rel="noopener"
+                  <span
+                    class="small font-mono text-truncate d-block inst-ror"
+                    title="Identificador ROR"
                     style="max-width:200px"
-                    @click.stop
-                  >{{ inst.rorId.replace('https://ror.org/', '') }}</a>
+                  >{{ inst.rorId.replace('https://ror.org/', '') }}</span>
                 </div>
               </div>
             </td>
 
             <td class="d-none d-xl-table-cell">
-              <a
+              <span
                 v-if="repoUrl(inst.oaiEndpoint)"
-                class="repo-link"
-                :href="inst.oaiEndpoint || undefined"
-                target="_blank"
-                rel="noopener"
-                @click.stop
+                class="repo-label"
+                title="Repositorio institucional"
               >
                 <i class="bi bi-archive"></i>
                 {{ repoUrl(inst.oaiEndpoint) }}
-              </a>
+              </span>
               <span v-else class="text-muted small">—</span>
             </td>
 
@@ -178,36 +172,28 @@ function harvestAgeClass(dateStr: string | null) {
   color: var(--color-text-primary);
 }
 
-.repo-link {
+.repo-label {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   font-size: 0.8125rem;
   color: var(--color-accent);
-  text-decoration: none;
   padding: 3px 10px;
   border-radius: var(--radius-full);
   background: var(--color-accent-soft);
-  transition: opacity var(--transition-fast);
   white-space: nowrap;
+  cursor: default;
+  user-select: text;
 }
 
-.repo-link:hover {
-  opacity: 0.8;
-}
-
-.repo-link i {
+.repo-label i {
   font-size: 0.75rem;
 }
 
-.inst-ror-link {
+.inst-ror {
   color: var(--color-primary);
-  text-decoration: none;
-  transition: opacity var(--transition-fast);
-}
-
-.inst-ror-link:hover {
-  opacity: 0.8;
+  cursor: default;
+  user-select: text;
 }
 
 .inst-row {
