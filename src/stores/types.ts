@@ -70,6 +70,9 @@ export interface PublicationItem {
   source: string | null
   apcEstimatedEur: number | null
   apcCoveredByAgreement: boolean | null
+  field: string | null
+  subfield: string | null
+  topic: string | null
 }
 
 export interface PublicationPageResponse {
@@ -135,6 +138,37 @@ export interface HistoricalData {
   institutionId: string
   institutionName: string
   yearlyData: HistoricalYear[]
+}
+
+export interface FieldStats {
+  field: string
+  articleCount: number
+  sharePct: number
+  diamondCount: number
+  goldCount: number
+  greenCount: number
+  hybridCount: number
+  bronzeCount: number
+  closedCount: number
+  broadOaPct: number
+  strongOaPct: number
+  repositoryCount: number
+  repositoryPct: number
+  totalApc: number
+  articlesWithApc: number
+  averageApc: number | null
+}
+
+export interface FieldArticle {
+  id: string
+  doi: string | null
+  title: string | null
+  journalName: string | null
+  publicationYear: number | null
+  subfield: string | null
+  topic: string | null
+  oaStatus: string | null
+  apcEstimatedEur: number | null
 }
 
 export interface PublisherApcItem {

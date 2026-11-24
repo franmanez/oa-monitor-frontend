@@ -126,9 +126,9 @@ POST /api/institutions/{uuid}/apc/calculate
 
 Una vez completados los pasos anteriores, los datos están disponibles en:
 
-- **Detalle de institución** (`/institution/{uuid}`): pestañas **Resumen** (resumen OA, desglose por estado, APC estimado), **APC por revista** (treemap top 100 con drill-down a lista de artículos), **APC por editorial** (treemap con drill-down a artículos) y **Listado de artículos** (tabla completa de artículos de revista con filtros de estado y búsqueda, paginada).
+- **Detalle de institución** (`/institution/{uuid}`): pestañas **Resumen** (resumen OA, desglose por estado, APC estimado), **APC por revista** (treemap top 100 con drill-down a lista de artículos), **APC por editorial** (treemap con drill-down a artículos), **Áreas Temáticas** (desglose por campo científico de OpenAlex: OA, repositorio y APC por área, con drill-down a artículos) y **Listado de artículos** (tabla completa de artículos de revista con filtros de estado y búsqueda, paginada; el DOI es enlace a doi.org y debajo aparece la clasificación Área › Subárea › Tema cuando OpenAlex la tiene).
 - **Ranking** (`/ranking`): comparativa entre universidades por año.
-- **CSV** (`/api/institutions/{uuid}/export`): descarga de todas las publicaciones con todos los campos.
+- **CSV** (`/api/institutions/{uuid}/export`): descarga de todas las publicaciones con todos los campos, incluida la clasificación temática (Área, Subárea y Tema de OpenAlex).
 
 ---
 
@@ -532,6 +532,46 @@ Panel con las 5 revistas más caras por APC de cada año seleccionado, mostrando
 - **Selector de universidad**: desplegable con todas las universidades activas.
 - **Selector de años**: botones toggle para activar/desactivar cada año. Todas las gráficas, KPIs, tabla y heatmap se actualizan dinámicamente.
 - **Botones "Todos" / "Ninguno"**: selección rápida de años.
+
+---
+
+## Áreas Temáticas por Universidad
+
+### ¿Qué analiza?
+
+La pestaña **Áreas Temáticas** del detalle de cada universidad descompone su producción científica por **campo científico**, usando la clasificación `primary_topic` de OpenAlex. Responde preguntas como:
+
+- ¿En qué áreas estamos publicando más?
+- ¿Dónde se concentra el gasto en APC?
+- ¿En qué áreas falla el depósito en repositorio?
+- ¿El acceso abierto es homogéneo entre disciplinas o hay áreas rezagadas?
+
+### De dónde sale la clasificación
+
+OpenAlex asigna a cada artículo un **tema principal** (`primary_topic`) mediante un clasificador entrenado sobre el título, el resumen y el texto completo. El tema se encaja en una jerarquía oficial de cuatro niveles, de lo general a lo concreto:
+
+| Nivel | Cuántos hay | Ejemplo | Uso en OpenScope |
+|---|---|---|---|
+| **Dominio** (`domain`) | 4 | Physical Sciences | Demasiado amplio: solo 4 grupos. No se usa. |
+| **Campo** (`field`) | 26 | Computer Science | **Nivel del monitor**: disciplinas consolidadas (Medicine, Engineering, Economics…) comparables entre universidades. |
+| **Subárea** (`subfield`) | 252 | Artificial Intelligence | Se guarda y se muestra en el drill-down, pero no agrupa (demasiados grupos pequeños). |
+| **Tema** (`topic`) | ~4.500 | Computer vision | El asunto concreto del artículo; se guarda como dato, no como agrupación. |
+
+Se eligió el **campo** como nivel de agrupación porque ofrece el mejor equilibrio: suficientes categorías para ver diferencias reales (en Humanidades domina el Green OA sin APC; en Medicina el Gold con APC), pero sin fragmentar los datos en decenas de grupos con pocos artículos. El ejemplo completo de una cadena sería: *Physical Sciences › Computer Science › Artificial Intelligence › Computer vision*.
+
+**Importante**: solo OpenAlex clasifica temáticamente. Los artículos que proceden únicamente del repositorio institucional (OAI-PMH) no traen una clasificación comparable entre universidades (`dc:subject` es texto libre y cada repositorio lo usa de una forma), así que se agrupan como **"Sin clasificar"**. Es normal que ese grupo crezca si el repositorio aporta artículos que OpenAlex no conoce; no indica un problema, solo menor cobertura de metadatos temáticos. Además, una pequeña fracción de artículos de OpenAlex no tiene `primary_topic` (el clasificador no lo asignó) y también cae en "Sin clasificar".
+
+### Qué se muestra
+
+1. **KPIs**: total de artículos, número de áreas con producción (y % clasificadas), %OA global y coste APC total.
+2. **Panorama por área**: una barra horizontal por área cuya **longitud es proporcional al número de artículos** y cuyos **segmentos de color son la composición por ruta OA** (los colores oficiales de ruta; el tooltip detalla cada segmento). Permite ver de un vistazo qué áreas son grandes y cómo son de abiertas.
+3. **Tabla Detalle por Área**: artículos, % del total, % OA (con semáforo de color y barra de progreso), composición por ruta, counts por ruta (cabeceras en el color de cada ruta), repositorio (barra de progreso) y coste APC total y medio. Misma lectura visual que la tabla "Detalle por Año" del análisis histórico.
+4. **Drill-down**: al pulsar un área (en la barra o en la tabla) se despliega el listado de artículos de esa área ordenados por APC: año, título (enlazado al DOI), revista, subárea, estado OA y APC. Se muestran los primeros 25 con botón para ver todos (hasta 500).
+
+### Selectores
+
+- **Universidad**: la que ya tienes abierta en el detalle; no hay que volver a elegirla.
+- **Año**: el selector superior del detalle de institución (año concreto o "Todos"). Al cambiarlo, la pestaña se recarga automáticamente, igual que las de APC por revista y por editorial.
 
 ---
 

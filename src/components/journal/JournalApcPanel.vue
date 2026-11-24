@@ -117,7 +117,7 @@ const journalYearLabel = computed(() =>
 // Azul único con intensidad proporcional al coste: máximo gasto = azul
 // profundo; mínimo = azul muy claro. El drill-down no usa treemap porque
 // los artículos de una misma revista comparten APC (celdas idénticas).
-function blueFor(value: number): { bg: string; text: string; subtext: string } {
+function blueFor(value: number): { bg: string; text: string; subtext: string; light: number } {
   const maxV = Math.max(...journals.value.map(j => Number(j.totalApcCost)), 1)
   const rel = Math.min(value / maxV, 1)
   const light = 80 - 48 * Math.sqrt(rel)
@@ -125,7 +125,8 @@ function blueFor(value: number): { bg: string; text: string; subtext: string } {
   return {
     bg: `hsl(216 72% ${Math.round(light)}%)`,
     text: isDark ? '#ffffff' : '#0f2a52',
-    subtext: isDark ? 'rgba(255,255,255,0.88)' : 'rgba(15,42,82,0.78)'
+    subtext: isDark ? 'rgba(255,255,255,0.88)' : 'rgba(15,42,82,0.78)',
+    light: Math.round(light)
   }
 }
 
@@ -174,17 +175,27 @@ const journalTreemapOption = computed(() => ({
       const share = totalApc.value > 0 ? cost / totalApc.value : 0
       const fs = treemapFontSize(share, 26)
       const colors = blueFor(cost)
+      // Al pasar el ratón, ECharts reconstruye el label desde el nivel de serie
+      // (donde no hay rich definido) y el texto caería a blanco sobre el fondo
+      // aclarado. Se declara el emphasis explícito por ítem: mismos colores de
+      // texto legibles + relleno aclarado controlado (tope L86, no blanco).
+      const labelCfg = {
+        fontSize: fs,
+        formatter: `{val|${formatEur(cost)}}\n{name|${displayName(j)}}`,
+        rich: {
+          val: { fontSize: fs, lineHeight: Math.round(fs * 1.4), fontWeight: 'bold', color: colors.text },
+          name: { fontSize: Math.max(9, Math.round(fs * 0.78)), lineHeight: Math.max(12, Math.round(fs * 1.15)), color: colors.subtext }
+        }
+      }
+      const light = Math.min(colors.light + 8, 86)
       return {
         name: displayName(j),
         value: cost,
         itemStyle: { color: colors.bg },
-        label: {
-          fontSize: fs,
-          formatter: `{val|${formatEur(cost)}}\n{name|${displayName(j)}}`,
-          rich: {
-            val: { fontSize: fs, lineHeight: Math.round(fs * 1.4), fontWeight: 'bold', color: colors.text },
-            name: { fontSize: Math.max(9, Math.round(fs * 0.78)), lineHeight: Math.max(12, Math.round(fs * 1.15)), color: colors.subtext }
-          }
+        label: labelCfg,
+        emphasis: {
+          itemStyle: { color: `hsl(216 72% ${light}%)` },
+          label: labelCfg
         }
       }
     })

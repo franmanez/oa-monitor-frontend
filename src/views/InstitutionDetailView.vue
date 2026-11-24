@@ -6,6 +6,7 @@ import type { PublicationItem, PublicationPageResponse } from '@/stores/types'
 import OaPieChart from '@/components/charts/OaPieChart.vue'
 import JournalApcPanel from '@/components/journal/JournalApcPanel.vue'
 import PublisherApcPanel from '@/components/publisher/PublisherApcPanel.vue'
+import FieldAnalysisPanel from '@/components/field/FieldAnalysisPanel.vue'
 import { OA_COLORS, OA_DESCRIPTIONS, oaLabel, oaTextColor } from '@/utils/oaRoutes'
 
 const route = useRoute()
@@ -34,7 +35,7 @@ const harvestYear = ref(new Date().getFullYear())
 const harvesting = ref(false)
 const harvestingOai = ref(false)
 
-const activeTab = ref<'resumen' | 'journals' | 'apc' | 'articulos'>('resumen')
+const activeTab = ref<'resumen' | 'journals' | 'apc' | 'areas' | 'articulos'>('resumen')
 
 async function runHarvest() {
   harvesting.value = true
@@ -237,6 +238,11 @@ function formatNum(n: number) {
           </button>
         </li>
         <li class="nav-item">
+          <button class="nav-link" :class="{ active: activeTab === 'areas' }" @click="activeTab = 'areas'">
+            <i class="bi bi-ui-checks-grid me-1"></i>Áreas Temáticas
+          </button>
+        </li>
+        <li class="nav-item">
           <button class="nav-link" :class="{ active: activeTab === 'articulos' }" @click="activeTab = 'articulos'">
             <i class="bi bi-list-ul me-1"></i>Listado de artículos
           </button>
@@ -389,7 +395,7 @@ function formatNum(n: number) {
                 <option value="CLOSED">Cerrado</option>
               </select>
               <div class="input-group input-group-sm">
-                <input v-model="filterSearch" @keyup.enter="pubsPage=0;fetchPublications()" type="text" class="form-control" placeholder="Buscar título/DOI/revisa...">
+                <input v-model="filterSearch" @keyup.enter="pubsPage=0;fetchPublications()" type="text" class="form-control" placeholder="Buscar título/DOI/revista...">
                 <button @click="pubsPage=0;fetchPublications()" class="btn btn-outline-secondary">
                   <i class="bi bi-search"></i>
                 </button>
@@ -409,12 +415,12 @@ function formatNum(n: number) {
           </div>
 
           <div v-else class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
+            <table class="table table-sm table-hover align-middle mb-0 pub-table">
               <thead class="table-light">
                 <tr>
                   <th>Título</th>
-                  <th class="d-none d-md-table-cell">Revista</th>
-                  <th class="text-center" style="width:80px">Año</th>
+                  <th class="d-none d-md-table-cell" style="width:330px">Revista</th>
+                  <th class="text-center" style="width:70px">Año</th>
                   <th class="text-center" style="width:100px">Ruta OA</th>
                   <th class="text-center d-none d-sm-table-cell" style="width:60px">Repo</th>
                   <th class="text-end d-none d-lg-table-cell sortable-th" style="width:110px" @click="toggleApcSort"
@@ -429,36 +435,47 @@ function formatNum(n: number) {
               <tbody>
                 <tr v-for="pub in pubs" :key="pub.id">
                   <td>
-                    <div class="text-truncate" style="max-width:400px">
+                    <div class="text-truncate">
                       <span class="small fw-medium">{{ pub.title }}</span>
                     </div>
-                    <div v-if="pub.doi" class="text-truncate" style="max-width:400px">
-                      <code class="small text-muted">{{ pub.doi }}</code>
+                    <div v-if="pub.doi" class="text-truncate">
+                      <a :href="`https://doi.org/${pub.doi}`" target="_blank" rel="noopener"
+                        class="doi-link small" title="Abrir DOI">{{ pub.doi }}</a>
+                    </div>
+                    <div v-if="pub.field || pub.subfield || pub.topic" class="text-truncate"
+                      :title="[pub.field, pub.subfield, pub.topic].filter(Boolean).join(' › ')">
+                      <span class="topic-line">
+                        <span v-if="pub.field" class="topic-item"><span class="topic-k">Área</span>{{ pub.field }}</span>
+                        <span v-if="pub.subfield" class="topic-item"><span class="topic-k">Subárea</span>{{ pub.subfield }}</span>
+                        <span v-if="pub.topic" class="topic-item"><span class="topic-k">Tema</span>{{ pub.topic }}</span>
+                      </span>
                     </div>
                   </td>
                   <td class="d-none d-md-table-cell">
-                    <small class="text-muted">{{ pub.journalName || '—' }}</small>
-                  </td>
-                  <td class="text-center small">{{ pub.publicationYear }}</td>
-                  <td class="text-center">
-                    <span class="badge text-nowrap" :style="badgeStyle(pub.oaStatusResolved || pub.oaStatusOpenalex)">
-                      {{ oaLabel(pub.oaStatusResolved || pub.oaStatusOpenalex) }}
-                    </span>
-                  </td>
-                  <td class="text-center d-none d-sm-table-cell">
-                    <div class="d-flex align-items-center justify-content-center gap-1">
-                      <i v-if="pub.repositoryUrl" class="bi bi-check-circle-fill text-success" title="En repositorio"></i>
-                      <i v-else class="bi bi-x-circle text-muted" title="No en repositorio"></i>
+                    <div class="text-truncate">
+                      <small class="text-muted" :title="pub.journalName || ''">{{ pub.journalName || '—' }}</small>
                     </div>
                   </td>
-                  <td class="text-end d-none d-lg-table-cell small">
-                    <span v-if="pub.apcEstimatedEur != null" class="fw-semibold">
-                      {{ formatEur(pub.apcEstimatedEur) }}
-                    </span>
-                    <span v-else class="text-muted">—</span>
-                  </td>
-                </tr>
-              </tbody>
+                    <td class="text-center small">{{ pub.publicationYear }}</td>
+                    <td class="text-center">
+                      <span class="badge text-nowrap" :style="badgeStyle(pub.oaStatusResolved || pub.oaStatusOpenalex)">
+                        {{ oaLabel(pub.oaStatusResolved || pub.oaStatusOpenalex) }}
+                      </span>
+                    </td>
+                    <td class="text-center d-none d-sm-table-cell">
+                      <div class="d-flex align-items-center justify-content-center gap-1">
+                        <i v-if="pub.repositoryUrl" class="bi bi-check-circle-fill text-success" title="En repositorio"></i>
+                        <i v-else class="bi bi-x-circle text-muted" title="No en repositorio"></i>
+                      </div>
+                    </td>
+                    <td class="text-end d-none d-lg-table-cell small">
+                      <span v-if="pub.apcEstimatedEur != null" class="fw-semibold">
+                        {{ formatEur(pub.apcEstimatedEur) }}
+                      </span>
+                      <span v-else class="text-muted">—</span>
+                    </td>
+                  </tr>
+                </tbody>
             </table>
           </div>
 
@@ -497,6 +514,10 @@ function formatNum(n: number) {
       </template>
 
       <PublisherApcPanel v-if="activeTab === 'apc'"
+        :institution-id="String(route.params.id)"
+        :year="store.selectedYear || 'all'" />
+
+      <FieldAnalysisPanel v-if="activeTab === 'areas'"
         :institution-id="String(route.params.id)"
         :year="store.selectedYear || 'all'" />
 
@@ -661,5 +682,53 @@ function formatNum(n: number) {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
   background: transparent;
+}
+
+/* DOI clicable en el listado de artículos (mismo patrón que APC por revista) */
+.doi-link {
+  color: var(--bs-primary, #3b82f6);
+  text-decoration: none;
+  font-family: var(--font-mono, monospace);
+}
+
+/* Layout fijo: cada celda ocupa el ancho real de su columna antes de truncar.
+   Título = resto; Revista 220 px; min-width para que el scroll horizontal
+   de table-responsive haga de fallback en pantallas estrechas. */
+.pub-table {
+  table-layout: fixed;
+  min-width: 780px;
+}
+
+.doi-link:hover {
+  text-decoration: underline;
+}
+
+/* Línea temática bajo el DOI (columna de título): label en negrita + valor */
+.topic-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 0.75rem;
+  color: var(--color-text-primary);
+}
+
+.topic-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.topic-k {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  /* Gris pizarra: deliberadamente lejos del azul del DOI y de los colores de ruta OA */
+  color: #475569;
+  background: #f1f5f9;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm, 6px);
+  white-space: nowrap;
 }
 </style>

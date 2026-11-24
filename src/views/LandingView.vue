@@ -5,7 +5,7 @@ const features = [
   {
     icon: 'bi-database',
     title: 'OpenAlex',
-    desc: 'API académica abierta con más de 250M de publicaciones. Trae los artículos de cada universidad por ROR y año, con revista, DOI y estado OA.',
+    desc: 'API académica abierta con más de 250M de publicaciones. Trae los artículos de cada universidad por ROR y año, con revista, DOI, estado OA y clasificación temática.',
     color: 'var(--color-primary)'
   },
   {
@@ -36,6 +36,14 @@ const steps = [
   { num: '02', title: 'Cruce con el repositorio', desc: 'Recorremos el repositorio de la universidad por OAI-PMH y fusionamos por DOI: lo que está depositado en casa se fuerza a GREEN y no se duplica.' },
   { num: '03', title: 'Precio APC de cada revista', desc: 'Cruzamos el ISSN con los precios pagados en OpenAPC (mediana por revista y año) para estimar el coste de los artículos GOLD e HYBRID.' },
   { num: '04', title: 'Informe y comparativa', desc: 'Resumen OA y coste estimado por universidad, ranking nacional por año, revistas que más gastan y exportación completa en CSV.' }
+]
+
+// Jerarquía de clasificación temática de OpenAlex (primary_topic)
+const taxonomyLevels = [
+  { name: 'Dominio', count: '4', ejemplo: 'Physical Sciences', desc: 'Las cuatro grandes ramas de la ciencia: física y química, ciencias de la vida, ciencias sociales y salud.' },
+  { name: 'Campo', count: '26', ejemplo: 'Computer Science', desc: 'Disciplinas consolidadas (Medicina, Ingeniería, Economía…). Es el nivel con el que OpenScope agrupa las Áreas Temáticas.', usada: true },
+  { name: 'Subárea', count: '252', ejemplo: 'Artificial Intelligence', desc: 'Divisiones especializadas dentro de cada campo, comparables con las áreas ASJC de Scopus.' },
+  { name: 'Tema', count: '~4.500', ejemplo: 'Computer vision', desc: 'El asunto concreto del artículo, asignado por un clasificador entrenado sobre título, resumen y texto completo.' }
 ]
 </script>
 
@@ -134,6 +142,42 @@ const steps = [
           <p class="status-desc">{{ s.desc }}</p>
         </div>
       </div>
+    </section>
+
+    <!-- Topic taxonomy -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-tag">Clasificación temática</span>
+        <h2 class="section-title">De dónde salen las áreas temáticas</h2>
+        <p class="section-desc">
+          OpenAlex asigna a cada artículo un <strong>tema principal</strong> (<code>primary_topic</code>)
+          dentro de una jerarquía de cuatro niveles, de lo general a lo concreto.
+        </p>
+      </div>
+      <div class="levels-grid">
+        <div v-for="(l, i) in taxonomyLevels" :key="l.name" class="level-card" :class="{ 'level-card-active': l.usada }">
+          <div class="level-top">
+            <span class="level-index">Nivel {{ i + 1 }}</span>
+            <span class="level-count">{{ l.count }}</span>
+          </div>
+          <h3 class="level-name">{{ l.name }}</h3>
+          <p class="level-example"><i class="bi bi-signpost-split"></i> {{ l.ejemplo }}</p>
+          <p class="level-desc">{{ l.desc }}</p>
+          <span v-if="l.usada" class="level-badge"><i class="bi bi-check-circle"></i> Nivel usado en Áreas Temáticas</span>
+        </div>
+      </div>
+      <p class="taxonomy-example">
+        <i class="bi bi-diagram-2"></i>
+        Ejemplo de clasificación de un artículo:
+        <span class="tax-chain">Physical Sciences › Computer Science › Artificial Intelligence › Computer vision</span>
+        — el monitor agrupa por <strong>Campo</strong> (26 disciplinas): suficiente para comparar áreas sin fragmentar los datos.
+      </p>
+      <p class="taxonomy-note">
+        <i class="bi bi-info-circle"></i>
+        Solo OpenAlex aporta esta clasificación: los artículos que proceden únicamente del repositorio
+        institucional se muestran como <strong>"Sin clasificar"</strong>. Consulta el desglose por área en la
+        pestaña <router-link to="/institutions" class="taxonomy-link">Áreas Temáticas</router-link> del detalle de cada universidad.
+      </p>
     </section>
 
   </div>
@@ -471,5 +515,149 @@ const steps = [
   color: var(--color-text-secondary);
   margin: 0;
   padding: var(--space-md) var(--space-lg) var(--space-lg);
+}
+
+/* ===== Topic taxonomy ===== */
+.levels-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+@media (max-width: 992px) {
+  .levels-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .levels-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.level-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  transition: box-shadow var(--transition-base);
+}
+
+.level-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.level-card-active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.level-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.level-index {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.level-count {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.level-name {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-xs);
+}
+
+.level-example {
+  font-size: 0.8125rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-mono);
+}
+
+.level-example i {
+  margin-right: 0.25rem;
+}
+
+.level-desc {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-top: var(--space-sm);
+}
+
+.taxonomy-example {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  margin: var(--space-md) auto 0;
+  max-width: 860px;
+  text-align: center;
+}
+
+.taxonomy-example i {
+  color: var(--color-primary);
+  margin-right: var(--space-xs);
+}
+
+.tax-chain {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.taxonomy-note {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  max-width: 760px;
+  margin: var(--space-md) auto 0;
+  text-align: center;
+}
+
+.taxonomy-note i {
+  color: var(--color-primary);
+  margin-right: var(--space-xs);
+}
+
+.taxonomy-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.taxonomy-link:hover {
+  text-decoration: underline;
 }
 </style>

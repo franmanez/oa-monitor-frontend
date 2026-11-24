@@ -4,10 +4,15 @@ import { OA_COLORS, OA_ROUTE_ORDER, oaLabel } from '@/utils/oaRoutes'
 
 // Barra apilada compacta (100 % del total del año) con la composición por
 // ruta OA. Consumo obligatorio de la paleta canónica: prohibido hardcodear hex.
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   segments: Record<string, number>
   total: number
-}>()
+  height?: number
+  maxWidth?: number
+}>(), {
+  height: 12,
+  maxWidth: 170
+})
 
 const parts = computed(() => {
   if (props.total <= 0) return []
@@ -24,7 +29,7 @@ const parts = computed(() => {
 </script>
 
 <template>
-  <div v-if="parts.length > 0" class="comp-bar" :title="parts.map(p => `${oaLabel(p.route)}: ${p.count} (${p.pct} %)`).join(' · ')">
+  <div v-if="parts.length > 0" class="comp-bar" :style="{ height: height + 'px', maxWidth: maxWidth + 'px' }" :title="parts.map(p => `${oaLabel(p.route)}: ${p.count} (${p.pct} %)`).join(' · ')">
     <div
       v-for="p in parts"
       :key="p.route"
